@@ -31,7 +31,7 @@ class TestPush(unittest.TestCase):
         self.appspec_path = '{0}/{1}'.format(self.source, self.appspec)
         self.bucket = 'foo'
         self.key = 'bar/baz.zip'
-        self.s3_location = 's3://' + self.bucket + '/' + self.key
+        self.s3_location = f's3://{self.bucket}/{self.key}'
         self.eTag = '"1a2b3cd45e"'
         self.version_id = '12341234-1234-1234-1234-123412341234'
         self.upload_id = 'upload_id'
@@ -90,7 +90,7 @@ class TestPush(unittest.TestCase):
             'ETag': self.eTag
         }
         self.push.s3.complete_multipart_upload\
-            .return_value = self.upload_response
+                .return_value = self.upload_response
         self.push.codedeploy = MagicMock()
 
     def test_run_main_throws_on_invalid_args(self):
@@ -190,7 +190,7 @@ class TestPush(unittest.TestCase):
     @patch('os.walk')
     def test_compress_throws_when_no_appspec(self, walk, path, tf, zf):
         walk.return_value = [(self.source, [], ['noappspec.yml'])]
-        noappsec_path = self.source + '/noappspec.yml'
+        noappsec_path = f'{self.source}/noappspec.yml'
         path.join.return_value = noappsec_path
         path.sep = '/'
         path.abspath.side_effect = [self.source, noappsec_path]

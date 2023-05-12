@@ -43,7 +43,7 @@ EC2_ROLE_POLICY = {
 }
 
 CREATE_EC2_ROLE_RESULT = {
-    "Role":  {
+    "Role": {
         "AssumeRolePolicyDocument": {
             "Version": "2008-10-17",
             "Statement": [
@@ -51,17 +51,15 @@ CREATE_EC2_ROLE_RESULT = {
                     "Action": "sts:AssumeRole",
                     "Sid": "",
                     "Effect": "Allow",
-                    "Principal": {
-                        "Service": "ec2.amazonaws.com"
-                    }
+                    "Principal": {"Service": "ec2.amazonaws.com"},
                 }
-            ]
+            ],
         },
         "RoleId": "AROAJG7O4RNNSRINMF6DI",
         "CreateDate": "2014-05-01T23:47:14.552Z",
         "RoleName": EC2_ROLE_NAME,
         "Path": "/",
-        "Arn": "arn:aws:iam::176430881729:role/"+EC2_ROLE_NAME
+        "Arn": f"arn:aws:iam::176430881729:role/{EC2_ROLE_NAME}",
     }
 }
 
@@ -134,7 +132,7 @@ class TestCreateDefaultRole(BaseAWSCommandParamsTest):
         instance_profile_exists_patch.return_value = False
         construct_result_patch.return_value = []
 
-        cmdline = self.prefix + ' --region cn-north-1'
+        cmdline = f'{self.prefix} --region cn-north-1'
         self.run_cmd(cmdline, expected_rc=0)
 
         # Only 6 operations will be called as we are mocking
@@ -200,13 +198,13 @@ class TestCreateDefaultRole(BaseAWSCommandParamsTest):
         construct_result_patch.return_value = []
 
         endpoint_url = 'https://elasticmapreduce.abc'
-        cmdline = self.prefix + ' --endpoint ' + endpoint_url
+        cmdline = f'{self.prefix} --endpoint {endpoint_url}'
         self.run_cmd(cmdline, expected_rc=0)
         self.assertEquals(get_sp_patch.call_args[0][1], endpoint_url)
 
     @mock.patch('botocore.session.Session.create_client')
     def test_call_parameters(self, call_patch):
-        cmdline = self.prefix + ' --region eu-west-1' + ' --no-verify-ssl'
+        cmdline = f'{self.prefix} --region eu-west-1 --no-verify-ssl'
         self.run_cmd(cmdline, expected_rc=0)
         self.assertEquals(call_patch.call_args[0][1], 'eu-west-1')
         self.assertEquals(call_patch.call_args[0][3], False)
@@ -214,14 +212,14 @@ class TestCreateDefaultRole(BaseAWSCommandParamsTest):
     @mock.patch('botocore.session.Session.create_client')
     def test_call_parameters_only_endpoint(self, call_patch):
         endpoint_arg = 'https://elasticmapreduce.us-unknown-1.amazonaws.com'
-        cmdline = self.prefix + ' --endpoint ' + endpoint_arg
+        cmdline = f'{self.prefix} --endpoint {endpoint_arg}'
         self.run_cmd(cmdline, expected_rc=0)
         self.assertEquals(call_patch.call_args[0][2], None)
 
     @mock.patch('botocore.session.Session.create_client')
     def test_call_parameters_only_iam_endpoint(self, call_patch):
         endpoint_arg = 'https://elasticmapreduce.us-unknown-1.amazonaws.com'
-        cmdline = self.prefix + ' --iam-endpoint ' + endpoint_arg
+        cmdline = f'{self.prefix} --iam-endpoint {endpoint_arg}'
         self.run_cmd(cmdline, expected_rc=0)
         self.assertEquals(call_patch.call_args[0][2], endpoint_arg)
 
@@ -239,18 +237,15 @@ class TestCreateDefaultRole(BaseAWSCommandParamsTest):
         create_role_patch.return_value = (http_response,
                                           CREATE_EC2_ROLE_RESULT)
 
-        cmdline = self.prefix + ' --region cn-north-1'
+        cmdline = f'{self.prefix} --region cn-north-1'
         result = self.run_cmd(cmdline, 0)
         expected_output = json.dumps(CONSTRUCTED_RESULT_OUTPUT, indent=4) +\
-            '\n'
+                '\n'
         self.assertEquals(result[0], expected_output)
 
 
 def side_effect_of_check_if_role_exists(*args, **kwargs):
-    if args[0] == EC2_ROLE_NAME:
-        return False
-    else:
-        return True
+    return args[0] != EC2_ROLE_NAME
 
 
 if __name__ == "__main__":

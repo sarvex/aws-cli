@@ -43,12 +43,11 @@ class ExactTimestampsSync(BaseSync):
         return should_sync
 
     def compare_time(self, src_file, dest_file):
+        cmd = src_file.operation_name
+        if cmd != 'download':
+            return super(ExactTimestampsSync, self).compare_time(src_file,
+                                                                 dest_file)
         src_time = src_file.last_update
         dest_time = dest_file.last_update
         delta = dest_time - src_time
-        cmd = src_file.operation_name
-        if cmd == 'download':
-            return self.total_seconds(delta) == 0
-        else:
-            return super(ExactTimestampsSync, self).compare_time(src_file,
-                                                                 dest_file)
+        return self.total_seconds(delta) == 0

@@ -53,10 +53,12 @@ class FileFormat(object):
         #     will take on the name the user specified in the
         #     command line.
         dest_path, use_src_name = format_table[dest_type](dest_path, dir_op)
-        files = {'src': {'path': src_path, 'type': src_type},
-                 'dest': {'path': dest_path, 'type': dest_type},
-                 'dir_op': dir_op, 'use_src_name': use_src_name}
-        return files
+        return {
+            'src': {'path': src_path, 'type': src_type},
+            'dest': {'path': dest_path, 'type': dest_type},
+            'dir_op': dir_op,
+            'use_src_name': use_src_name,
+        }
 
     def local_format(self, path, dir_op):
         """
@@ -82,15 +84,14 @@ class FileFormat(object):
                be of the one provided.
         """
         full_path = os.path.abspath(path)
-        if (os.path.exists(full_path) and os.path.isdir(full_path)) or dir_op:
-            full_path += os.sep
-            return full_path, True
-        else:
-            if path.endswith(os.sep):
-                full_path += os.sep
-                return full_path, True
-            else:
-                return full_path, False
+        if (
+            (not os.path.exists(full_path) or not os.path.isdir(full_path))
+            and not dir_op
+            and not path.endswith(os.sep)
+        ):
+            return full_path, False
+        full_path += os.sep
+        return full_path, True
 
     def s3_format(self, path, dir_op):
         """
@@ -110,15 +111,11 @@ class FileFormat(object):
                prefix will be formed but use the the name provided as opposed
                to the source name.
         """
-        if dir_op:
-            if not path.endswith('/'):
-                path += '/'
-            return path, True
-        else:
-            if not path.endswith('/'):
-                return path, False
-            else:
-                return path, True
+        if not dir_op:
+            return (path, False) if not path.endswith('/') else (path, True)
+        if not path.endswith('/'):
+            path += '/'
+        return path, True
 
     def identify_type(self, path):
         """
@@ -127,7 +124,4 @@ class FileFormat(object):
         or s3.  If from s3 it strips off the s3:// from the beginnning of the
         path
         """
-        if path.startswith('s3://'):
-            return 's3', path[5:]
-        else:
-            return 'local', path
+        return ('s3', path[5:]) if path.startswith('s3://') else ('local', path)

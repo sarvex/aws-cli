@@ -109,9 +109,10 @@ def _partition_dict(item_dict, scalar_keys):
             else:
                 scalar.append(six.text_type(value))
     else:
-        for key in scalar_keys:
-            scalar.append(six.text_type(item_dict.get(key, '')))
+        scalar.extend(six.text_type(item_dict.get(key, '')) for key in scalar_keys)
         remaining_keys = sorted(set(item_dict.keys()) - set(scalar_keys))
-        for remaining_key in remaining_keys:
-            non_scalar.append((remaining_key, item_dict[remaining_key]))
+        non_scalar.extend(
+            (remaining_key, item_dict[remaining_key])
+            for remaining_key in remaining_keys
+        )
     return scalar, non_scalar

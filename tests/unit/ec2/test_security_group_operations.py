@@ -19,37 +19,30 @@ class TestAuthorizeSecurityGroupIngress(BaseAWSCommandParamsTest):
     prefix = 'ec2 authorize-security-group-ingress '
 
     def test_simple_cidr(self):
-        args = self.prefix + (
-            '--group-name foobar --protocol tcp --port 22-25 --cidr 0.0.0.0/0')
         result = {'GroupName': 'foobar',
                   'IpPermissions': [{'FromPort': 22, 'IpProtocol': 'tcp',
                                       'IpRanges': [{'CidrIp': '0.0.0.0/0'}],
                                       'ToPort': 25}]}
+        args = f'{self.prefix}--group-name foobar --protocol tcp --port 22-25 --cidr 0.0.0.0/0'
         self.assert_params_for_cmd(args, result)
 
     def test_all_port(self):
-        args = self.prefix + (
-            '--group-name foobar --protocol tcp --port all --cidr 0.0.0.0/0')
         result = {'GroupName': 'foobar',
                    'IpPermissions': [{'FromPort': -1, 'IpProtocol': 'tcp',
                                        'IpRanges': [{'CidrIp': '0.0.0.0/0'}],
                                        'ToPort': -1}]}
+        args = f'{self.prefix}--group-name foobar --protocol tcp --port all --cidr 0.0.0.0/0'
         self.assert_params_for_cmd(args, result)
 
     def test_icmp_echo_request(self):
-        # This corresponds to a from port of 8 and a to port of -1, i.e
-        # --port 8--1.
-        args = self.prefix + (
-            '--group-name foobar --protocol tcp --port 8--1 --cidr 0.0.0.0/0')
         result = {'GroupName': 'foobar',
                   'IpPermissions': [{'FromPort': 8, 'IpProtocol': 'tcp',
                                       'IpRanges': [{'CidrIp': '0.0.0.0/0'}],
                                       'ToPort': -1}]}
+        args = f'{self.prefix}--group-name foobar --protocol tcp --port 8--1 --cidr 0.0.0.0/0'
         self.assert_params_for_cmd(args, result)
 
     def test_all_protocol(self):
-        args = self.prefix + (
-            '--group-name foobar --protocol all --port all --cidr 0.0.0.0/0')
         result = {'GroupName': 'foobar',
                    # This is correct, the expected value is the *string*
                    # '-1'.  This is because the IpProtocol is modeled
@@ -58,47 +51,43 @@ class TestAuthorizeSecurityGroupIngress(BaseAWSCommandParamsTest):
                                        'IpRanges': [{'CidrIp': '0.0.0.0/0'}],
                                        'ToPort': -1}]}
 
+        args = f'{self.prefix}--group-name foobar --protocol all --port all --cidr 0.0.0.0/0'
         self.assert_params_for_cmd(args, result)
 
     def test_numeric_protocol(self):
-        args = self.prefix + (
-            '--group-name foobar --protocol 200 --cidr 0.0.0.0/0')
         result = {'GroupName': 'foobar',
                    'IpPermissions': [{'IpProtocol': '200', 'IpRanges':
                                        [{'CidrIp': '0.0.0.0/0'}]}]}
+        args = f'{self.prefix}--group-name foobar --protocol 200 --cidr 0.0.0.0/0'
         self.assert_params_for_cmd(args, result)
 
     def test_negative_one_protocol(self):
-        args = self.prefix + (
-            '--group-name foobar --protocol -1 --cidr 0.0.0.0/0')
         result = {'GroupName': 'foobar',
                    'IpPermissions': [{'IpProtocol': '-1', 'IpRanges':
                                        [{'CidrIp': '0.0.0.0/0'}]}]}
+        args = f'{self.prefix}--group-name foobar --protocol -1 --cidr 0.0.0.0/0'
         self.assert_params_for_cmd(args, result)
 
     def test_classic_group(self):
-        args = self.prefix + (
-            '--group-name foobar --protocol udp '
-            '--source-group fiebaz --group-owner 11111111')
         result = {'GroupName': 'foobar',
                    'IpPermissions': [{'IpProtocol': 'udp', 'UserIdGroupPairs':
                                        [{'GroupName': 'fiebaz', 'UserId':
                                          '11111111'}]}]}
+        args = f'{self.prefix}--group-name foobar --protocol udp --source-group fiebaz --group-owner 11111111'
         self.assert_params_for_cmd(args, result)
 
     def test_vpc_group(self):
-        args = self.prefix + (
-            '--group-name foobar --protocol icmp --source-group sg-12345678')
         result = {'GroupName': 'foobar',
                   'IpPermissions': [{'IpProtocol': 'icmp', 'UserIdGroupPairs':
                                       [{'GroupId': 'sg-12345678'}]}]}
+        args = f'{self.prefix}--group-name foobar --protocol icmp --source-group sg-12345678'
         self.assert_params_for_cmd(args, result)
 
     def test_IpPermissions(self):
         json = (
             '[{"FromPort":8000,"ToPort":9000,'
             '"IpProtocol":"tcp","IpRanges":[{"CidrIp":"192.168.100.0/24"}]}]')
-        args = self.prefix + '--group-name foobar --ip-permissions %s' % json
+        args = f'{self.prefix}--group-name foobar --ip-permissions {json}'
         result = {'GroupName': 'foobar',
                    'IpPermissions': [{'FromPort': 8000, 'ToPort': 9000,
                                       'IpProtocol': 'tcp', 'IpRanges':
@@ -109,7 +98,7 @@ class TestAuthorizeSecurityGroupIngress(BaseAWSCommandParamsTest):
         json = (
             '[{"FromPort":8000,"ToPort":9000,"IpProtocol":"tcp",'
             '"IpRanges":[{"CidrIp":"192.168.100.0/24"}]}]')
-        args = self.prefix + '--group-id sg-12345678 --ip-permissions %s' % json
+        args = f'{self.prefix}--group-id sg-12345678 --ip-permissions {json}'
         result = {'GroupId': 'sg-12345678',
                   'IpPermissions': [{'FromPort': 8000, 'ToPort': 9000,
                                      'IpProtocol': 'tcp', 'IpRanges':
@@ -120,7 +109,7 @@ class TestAuthorizeSecurityGroupIngress(BaseAWSCommandParamsTest):
         json = (
             '[{"FromPort":8000,"ToPort":9000,"IpProtocol":"tcp",'
             '"IpRanges":[{"CidrIp":"192.168.100.0/24"}]}]')
-        args = self.prefix + '--group-name foobar --port 100 --ip-permissions %s' % json
+        args = f'{self.prefix}--group-name foobar --port 100 --ip-permissions {json}'
         self.assert_params_for_cmd(args, expected_rc=255)
 
 

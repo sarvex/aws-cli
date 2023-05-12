@@ -42,7 +42,7 @@ class TestPutBucketTagging(BaseAWSCommandParamsTest):
     def test_simple(self):
         cmdline = self.prefix
         cmdline += ' --bucket mybucket'
-        cmdline += ' --tagging %s' % TAGSET
+        cmdline += f' --tagging {TAGSET}'
         expected = {
             'Bucket': 'mybucket',
             'Tagging': {

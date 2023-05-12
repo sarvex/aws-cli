@@ -80,13 +80,10 @@ class GetStatusCommand(BasicCommand):
         name = delivery_channel['name']
         sys.stdout.write('name: %s\n' % name)
 
-        # Obtain the various delivery statuses.
-        stream_delivery = delivery_channel['configStreamDeliveryInfo']
         history_delivery = delivery_channel['configHistoryDeliveryInfo']
         snapshot_delivery = delivery_channel['configSnapshotDeliveryInfo']
 
-        # Print the statuses out if they exist.
-        if stream_delivery:
+        if stream_delivery := delivery_channel['configStreamDeliveryInfo']:
             self._check_last_status(stream_delivery, 'stream delivery ')
         if history_delivery:
             self._check_last_status(history_delivery, 'history delivery ')

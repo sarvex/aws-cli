@@ -30,38 +30,29 @@ def parse_tags(raw_tags_list):
     tags_dict_list = []
     if raw_tags_list:
         for tag in raw_tags_list:
-            if tag.find('=') == -1:
-                key, value = tag, ''
-            else:
-                key, value = tag.split('=', 1)
+            key, value = (tag, '') if tag.find('=') == -1 else tag.split('=', 1)
             tags_dict_list.append({'Key': key, 'Value': value})
 
     return tags_dict_list
 
 
 def parse_key_value_string(key_value_string):
+    if key_value_string is None:
+        return None
+    raw_key_value_list = key_value_string.split(',')
     # raw_key_value_string is a list of key value pairs separated by comma.
     # Examples: "k1=v1,k2='v  2',k3,k4"
     key_value_list = []
-    if key_value_string is not None:
-        raw_key_value_list = key_value_string.split(',')
-        for kv in raw_key_value_list:
-            if kv.find('=') == -1:
-                key, value = kv, ''
-            else:
-                key, value = kv.split('=', 1)
-            key_value_list.append({'Key': key, 'Value': value})
-        return key_value_list
-    else:
-        return None
+    for kv in raw_key_value_list:
+        key, value = (kv, '') if kv.find('=') == -1 else kv.split('=', 1)
+        key_value_list.append({'Key': key, 'Value': value})
+    return key_value_list
 
 
 def apply_boolean_options(
         true_option, true_option_name, false_option, false_option_name):
     if true_option and false_option:
-        error_message = \
-            'aws: error: cannot use both ' + true_option_name + \
-            ' and ' + false_option_name + ' options together.'
+        error_message = f'aws: error: cannot use both {true_option_name} and {false_option_name} options together.'
         raise ValueError(error_message)
     elif true_option:
         return True
@@ -103,8 +94,7 @@ def build_step(
     step = {}
     apply_dict(step, 'Name', name)
     apply_dict(step, 'ActionOnFailure', action_on_failure)
-    jar_config = {}
-    jar_config['Jar'] = jar
+    jar_config = {'Jar': jar}
     apply_dict(jar_config, 'Args', args)
     apply_dict(jar_config, 'MainClass', main_class)
     apply_dict(jar_config, 'Properties', properties)
@@ -159,12 +149,12 @@ def call(session, operation_name, parameters, region_name=None,
     client = session.create_client(
         'emr', region_name=region_name, endpoint_url=endpoint_url,
         verify=verify)
-    LOG.debug('Calling ' + str(operation_name))
+    LOG.debug(f'Calling {str(operation_name)}')
     return getattr(client, operation_name)(**parameters)
 
 
 def get_example_file(command):
-    return open('awscli/examples/emr/' + command + '.rst')
+    return open(f'awscli/examples/emr/{command}.rst')
 
 
 def dict_to_string(dict, indent=2):
@@ -220,10 +210,7 @@ def find_master_public_dns(session, parsed_globals, cluster_id):
     """
     master_instance = _find_master_instance(
         session, parsed_globals, cluster_id)
-    if master_instance is None:
-        return ""
-    else:
-        return master_instance.get('PublicDnsName')
+    return "" if master_instance is None else master_instance.get('PublicDnsName')
 
 
 def which(program):

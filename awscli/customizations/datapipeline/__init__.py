@@ -81,8 +81,8 @@ def document_translation(help_command, **kwargs):
             # This should never happen, but in the rare case that it does
             # we should be raising something with a helpful error message.
             raise DocSectionNotFoundError(
-                'Could not find the "output" section for the command: %s'
-                % help_command)
+                f'Could not find the "output" section for the command: {help_command}'
+            )
     doc.write('======\nOutput\n======')
     doc.write(
         '\nThe output of this command is the pipeline definition, which'
@@ -171,7 +171,7 @@ class QueryArgBuilder(object):
     def build_query(self, parsed_args):
         selectors = []
         if parsed_args.start_interval is None and \
-                parsed_args.schedule_interval is None:
+                    parsed_args.schedule_interval is None:
             # If no intervals are specified, default
             # to a start time of 4 days ago and an end time
             # of right now.
@@ -190,8 +190,7 @@ class QueryArgBuilder(object):
             self._build_schedule_times(selectors, parsed_args)
         if parsed_args.status is not None:
             self._build_status(selectors, parsed_args)
-        query = {'selectors': selectors}
-        return query
+        return {'selectors': selectors}
 
     def _build_schedule_times(self, selectors, parsed_args):
         if parsed_args.start_interval is not None:
@@ -291,9 +290,7 @@ class ParameterValuesInlineArgument(CustomArgument):
                 else:
                     parameter_object[key] = value
             except IndexError:
-                raise ParameterDefinitionError(
-                    "Invalid inline parameter format: %s" % argument
-                )
+                raise ParameterDefinitionError(f"Invalid inline parameter format: {argument}")
         parsed = {'values': parameter_object}
         parameter_values = translator.definition_to_parameter_values(parsed)
         parameters['parameterValues'] = parameter_values
@@ -373,8 +370,9 @@ class ListRunsCommand(BasicCommand):
     def _validate_status_choices(self, statuses):
         for status in statuses:
             if status not in self.VALID_STATUS:
-                raise ValueError("Invalid status: %s, must be one of: %s" %
-                                 (status, ', '.join(self.VALID_STATUS)))
+                raise ValueError(
+                    f"Invalid status: {status}, must be one of: {', '.join(self.VALID_STATUS)}"
+                )
 
     def _list_runs(self, parsed_args):
         query = QueryArgBuilder().build_query(parsed_args)
@@ -388,9 +386,9 @@ class ListRunsCommand(BasicCommand):
         self._formatter.display_objects_to_user(converted)
 
     def _describe_objects(self, pipeline_id, object_ids):
-        parsed = self.client.describe_objects(
-            pipelineId=pipeline_id, objectIds=object_ids)
-        return parsed
+        return self.client.describe_objects(
+            pipelineId=pipeline_id, objectIds=object_ids
+        )
 
     def _query_objects(self, pipeline_id, query):
         paginator = self.client.get_paginator('query_objects').paginate(

@@ -120,7 +120,7 @@ def _run_successful_aws_command(command_string):
 
 
 def test_display_error_message():
-    identifier = 'foo-awscli-test-%s' % random.randint(1000, 100000)
+    identifier = f'foo-awscli-test-{random.randint(1000, 100000)}'
     for cmd in ERROR_COMMANDS:
         yield _run_error_aws_command, cmd % identifier
 
@@ -133,5 +133,5 @@ def _run_error_aws_command(command_string):
     match = error_message.search(result.stderr)
     if match is None:
         raise AssertionError(
-            'Error message was not displayed for command "%s": %s' % (
-                command_string, result.stderr))
+            f'Error message was not displayed for command "{command_string}": {result.stderr}'
+        )

@@ -49,7 +49,7 @@ class TestPutObject(BaseAWSCommandParamsTest):
         cmdline = self.prefix
         cmdline += ' --bucket mybucket'
         cmdline += ' --key mykey'
-        cmdline += ' --body %s' % self.file_path
+        cmdline += f' --body {self.file_path}'
         result = {'uri_params': {'Bucket': 'mybucket',
                                  'Key': 'mykey'},
                   'headers': {'Expect': '100-continue'}}
@@ -64,7 +64,7 @@ class TestPutObject(BaseAWSCommandParamsTest):
         cmdline = self.prefix
         cmdline += ' --bucket mybucket'
         cmdline += ' --key mykey'
-        cmdline += ' --body %s' % self.file_path
+        cmdline += f' --body {self.file_path}'
         cmdline += ' --acl public-read'
         cmdline += ' --content-encoding x-gzip'
         cmdline += ' --content-type text/plain'
@@ -100,7 +100,7 @@ class TestPutObject(BaseAWSCommandParamsTest):
         cmdline += ' --bucket mybucket'
         cmdline += ' --key mykey'
         cmdline += ' --sse-customer-algorithm AES256'
-        cmdline += ' --sse-customer-key fileb://%s' % filename
+        cmdline += f' --sse-customer-key fileb://{filename}'
         expected = {
             'Bucket': 'mybucket',
             'Key': 'mykey',

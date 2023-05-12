@@ -26,13 +26,12 @@ def make_s3_files(session, key1='text1.txt', key2='text2.txt'):
     region = 'us-west-2'
     bucket = create_bucket(session)
     string1 = "This is a test."
-    string2 = "This is another test."
     client = session.create_client('s3', region_name=region)
     client.put_object(Bucket=bucket, Key=key1, Body=string1)
     if key2 is not None:
         client.put_object(Bucket=bucket, Key='another_directory/')
-        client.put_object(Bucket=bucket, Key='another_directory/%s' % key2,
-                          Body=string2)
+        string2 = "This is another test."
+        client.put_object(Bucket=bucket, Key=f'another_directory/{key2}', Body=string2)
     return bucket
 
 

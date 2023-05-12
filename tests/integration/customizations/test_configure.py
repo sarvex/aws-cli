@@ -25,7 +25,8 @@ class TestConfigureCommand(unittest.TestCase):
     def setUp(self):
         self.tempdir = tempfile.mkdtemp()
         self.config_filename = os.path.join(
-            self.tempdir, 'config-%s' % random.randint(1, 100000))
+            self.tempdir, f'config-{random.randint(1, 100000)}'
+        )
         self.env_vars = os.environ.copy()
         self.env_vars['AWS_CONFIG_FILE'] = self.config_filename
 

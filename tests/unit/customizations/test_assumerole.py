@@ -111,7 +111,7 @@ class TestAssumeRoleCredentialProvider(unittest.TestCase):
 
     def test_assume_role_retrieves_from_cache(self):
         date_in_future = datetime.utcnow() + timedelta(seconds=1000)
-        utc_timestamp = date_in_future.isoformat() + 'Z'
+        utc_timestamp = f'{date_in_future.isoformat()}Z'
         self.fake_config['profiles']['development']['role_arn'] = 'myrole'
         cache = {
             'development--myrole': {
@@ -160,7 +160,7 @@ class TestAssumeRoleCredentialProvider(unittest.TestCase):
 
     def test_assume_role_in_cache_but_expired(self):
         expired_creds = datetime.utcnow()
-        utc_timestamp = expired_creds.isoformat() + 'Z'
+        utc_timestamp = f'{expired_creds.isoformat()}Z'
         response = {
             'Credentials': {
                 'AccessKeyId': 'foo',

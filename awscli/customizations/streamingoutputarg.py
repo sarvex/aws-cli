@@ -88,8 +88,9 @@ class StreamingOutputArgument(BaseCLIArgument):
         self._output_file = value
         service_name = self._operation_model.service_model.endpoint_prefix
         operation_name = self._operation_model.name
-        self._session.register('after-call.%s.%s' % (
-            service_name, operation_name), self.save_file)
+        self._session.register(
+            f'after-call.{service_name}.{operation_name}', self.save_file
+        )
 
     def save_file(self, parsed, **kwargs):
         if self._response_key not in parsed:
@@ -101,10 +102,8 @@ class StreamingOutputArgument(BaseCLIArgument):
         body = parsed[self._response_key]
         buffer_size = self._buffer_size
         with open(self._output_file, 'wb') as fp:
-            data = body.read(buffer_size)
-            while data:
+            while data := body.read(buffer_size):
                 fp.write(data)
-                data = body.read(buffer_size)
         # We don't want to include the streaming param in
         # the returned response.
         del parsed[self._response_key]

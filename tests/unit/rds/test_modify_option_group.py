@@ -44,11 +44,9 @@ class TestRemoveOptionGroup(BaseAWSCommandParamsTest):
     prefix = 'rds remove-option-from-option-group '
 
     def test_remove_options(self):
-        args = ('--option-group-name myoptiongroup2 '
-                '--options TDE')
-        cmdline = self.prefix + args
         result = {'OptionsToRemove': ['TDE'],
                   'OptionGroupName': 'myoptiongroup2'}
+        cmdline = f'{self.prefix}--option-group-name myoptiongroup2 --options TDE'
         self.assert_params_for_cmd(cmdline, result)
 
     def test_option_to_add_is_not_allowed(self):

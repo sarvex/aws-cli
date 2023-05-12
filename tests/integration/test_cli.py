@@ -52,13 +52,11 @@ def test_no_shadowed_builtins():
             for sub_name, sub_command in sub_help.command_table.items():
                 op_help = sub_command.create_help_command()
                 arg_table = op_help.arg_table
-                for arg_name in arg_table:
-                    if arg_name in top_level_params:
-                        # Then we're shadowing a built in argument.
-                        errors.append(
-                            'Shadowing a top level option: %s.%s.%s' % (
-                                command_name, sub_name, arg_name))
-
+                errors.extend(
+                    f'Shadowing a top level option: {command_name}.{sub_name}.{arg_name}'
+                    for arg_name in arg_table
+                    if arg_name in top_level_params
+                )
     if errors:
         raise AssertionError('\n' + '\n'.join(errors))
 
@@ -81,7 +79,7 @@ class TestBasicCommandFunctionality(unittest.TestCase):
             'Key': key, 'Body': content
         }
         if extra_args is not None:
-            call_args.update(extra_args)
+            call_args |= extra_args
         client.put_object(**call_args)
         self.addCleanup(client.delete_object, Bucket=bucket, Key=key)
 
@@ -163,8 +161,11 @@ class TestBasicCommandFunctionality(unittest.TestCase):
             'ec2 describe-instances --filters '
             '\'{"Name": "bad-filter", "Values": ["i-123"]}\'')
         self.assertEqual(p.rc, 255)
-        self.assertIn("The filter 'bad-filter' is invalid", p.stderr,
-                      "stdout: %s, stderr: %s" % (p.stdout, p.stderr))
+        self.assertIn(
+            "The filter 'bad-filter' is invalid",
+            p.stderr,
+            f"stdout: {p.stdout}, stderr: {p.stderr}",
+        )
 
     def test_param_with_file(self):
         d = tempfile.mkdtemp()
@@ -173,20 +174,20 @@ class TestBasicCommandFunctionality(unittest.TestCase):
         with open(param_file, 'w') as f:
             f.write('[{"Name": "instance-id", "Values": ["i-123"]}]')
         self.addCleanup(os.remove, param_file)
-        p = aws('ec2 describe-instances --filters file://%s' % param_file)
+        p = aws(f'ec2 describe-instances --filters file://{param_file}')
         self.assertEqual(p.rc, 0)
         self.assertIn('Reservations', p.json)
 
     def test_streaming_output_operation(self):
         d = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, d)
-        bucket_name = 'clistream' + str(
-            int(time.time())) + str(random.randint(1, 100))
+        bucket_name = f'clistream{int(time.time())}{random.randint(1, 100)}'
 
         self.put_object(bucket=bucket_name, key='foobar',
                         content='foobar contents')
-        p = aws('s3api get-object --bucket %s --key foobar %s' % (
-            bucket_name, os.path.join(d, 'foobar')))
+        p = aws(
+            f"s3api get-object --bucket {bucket_name} --key foobar {os.path.join(d, 'foobar')}"
+        )
         self.assertEqual(p.rc, 0)
         with open(os.path.join(d, 'foobar')) as f:
             contents = f.read()
@@ -200,13 +201,14 @@ class TestBasicCommandFunctionality(unittest.TestCase):
         env_vars['AWS_ACCESS_KEY_ID'] = 'foo'
         env_vars['AWS_SECRET_ACCESS_KEY'] = 'bar'
 
-        bucket_name = 'nosign' + str(
-            int(time.time())) + str(random.randint(1, 100))
+        bucket_name = f'nosign{int(time.time())}{random.randint(1, 100)}'
         self.put_object(bucket_name, 'foo', content='bar',
                         extra_args={'ACL': 'public-read-write'})
 
-        p = aws('s3api get-object --bucket %s --key foo %s' % (
-            bucket_name, os.path.join(d, 'foo')), env_vars=env_vars)
+        p = aws(
+            f"s3api get-object --bucket {bucket_name} --key foo {os.path.join(d, 'foo')}",
+            env_vars=env_vars,
+        )
         # Should have credential issues.
         self.assertEqual(p.rc, 255)
 
@@ -224,15 +226,14 @@ class TestBasicCommandFunctionality(unittest.TestCase):
     def test_no_paginate_arg(self):
         d = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, d)
-        bucket_name = 'nopaginate' + str(
-            int(time.time())) + str(random.randint(1, 100))
+        bucket_name = f'nopaginate{int(time.time())}{random.randint(1, 100)}'
 
         self.put_object(bucket=bucket_name, key='foobar',
                         content='foobar contents')
-        p = aws('s3api list-objects --bucket %s --no-paginate' % bucket_name)
+        p = aws(f's3api list-objects --bucket {bucket_name} --no-paginate')
         self.assertEqual(p.rc, 0, p.stdout + p.stderr)
 
-        p = aws('s3api list-objects --bucket %s' % bucket_name)
+        p = aws(f's3api list-objects --bucket {bucket_name}')
         self.assertEqual(p.rc, 0, p.stdout + p.stderr)
 
     def test_top_level_options_debug(self):
@@ -342,15 +343,12 @@ class TestCommandLineage(unittest.TestCase):
 
     def assert_lineage_names(self, ref_lineage_names):
         command_table = self.top_help.command_table
-        for i, cmd_name in enumerate(ref_lineage_names):
+        for cmd_name in ref_lineage_names:
             command = command_table[cmd_name]
             help_command = command.create_help_command()
             command_table = help_command.command_table
 
-        actual_lineage_names = []
-        for cmd in command.lineage:
-            actual_lineage_names.append(cmd.name)
-
+        actual_lineage_names = [cmd.name for cmd in command.lineage]
         # Assert the actual names of each command in a lineage is as expected.
         self.assertEqual(actual_lineage_names, ref_lineage_names)
 
@@ -464,15 +462,19 @@ class TestGlobalArgs(BaseS3CLICommand):
         # try to sign the request, we'll get an auth error.
         env['AWS_ACCESS_KEY_ID'] = 'foo'
         env['AWS_SECRET_ACCESS_KEY'] = 'bar'
-        p = aws('s3api head-object --bucket %s --key public --no-sign-request'
-                % bucket_name, env_vars=env)
+        p = aws(
+            f's3api head-object --bucket {bucket_name} --key public --no-sign-request',
+            env_vars=env,
+        )
         self.assert_no_errors(p)
         self.assertIn('ETag', p.json)
 
         # Should fail because we're not signing the request but the object is
         # private.
-        p = aws('s3api head-object --bucket %s --key private --no-sign-request'
-                % bucket_name, env_vars=env)
+        p = aws(
+            f's3api head-object --bucket {bucket_name} --key private --no-sign-request',
+            env_vars=env,
+        )
         self.assertEqual(p.rc, 255)
 
 

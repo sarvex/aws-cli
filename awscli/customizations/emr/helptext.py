@@ -50,18 +50,7 @@ LOG_URI = (
     'of the cluster. If a value is not provided, '
     'logs are not created.</p>')
 
-SERVICE_ROLE = (
-    '<p>Allows EMR to call other AWS Services such as EC2 on your behalf.</p>'
-    'To create the default Service Role <code>' + EMR_ROLE_NAME + '</code>,'
-    ' use <code>aws emr create-default-roles</code> command. </p>'
-    'This command will also create the default EC2 instance profile '
-    '<code>' + EC2_ROLE_NAME + '</code>.')
-
-USE_DEFAULT_ROLES = (
-    '<p>Uses --service-role=<code>' + EMR_ROLE_NAME + '</code>, and '
-    '--ec2-attributes InstanceProfile=<code>' + EC2_ROLE_NAME + '</code>'
-    'To create the default service role and instance profile'
-    ' use <code>aws emr create-default-roles</code> command. </p>')
+SERVICE_ROLE = f'<p>Allows EMR to call other AWS Services such as EC2 on your behalf.</p>To create the default Service Role <code>{EMR_ROLE_NAME}</code>, use <code>aws emr create-default-roles</code> command. </p>This command will also create the default EC2 instance profile <code>{EC2_ROLE_NAME}</code>.'
 
 AMI_VERSION = (
     '<p>The version number of the Amazon Machine Image (AMI) '
@@ -97,34 +86,8 @@ INSTANCE_COUNT = (
 ADDITIONAL_INFO = (
     '<p>Specifies additional information during cluster creation</p>')
 
-EC2_ATTRIBUTES = (
-    '<p>Specifies the following Amazon EC2 attributes: KeyName,'
-    ' AvailabilityZone, SubnetId, InstanceProfile,'
-    ' EmrManagedMasterSecurityGroup, EmrManagedSlaveSecurityGroup,'
-    ' AdditionalMasterSecurityGroups and AdditionalSlaveSecurityGroups.'
-    ' AvailabilityZone and Subnet cannot be specified together.'
-    ' To create the default instance profile <code>'
-    + EC2_ROLE_NAME + '</code>,'
-    ' use <code>aws emr create-default-roles</code> command. </p>'
-    'This command will also create the default EMR service role '
-    '<code>' + EMR_ROLE_NAME + '</code>.'
-    '<li>KeyName - the name of the AWS EC2 key pair you are using '
-    'to launch the cluster.</li>'
-    '<li>AvailabilityZone - An isolated resource '
-    'location within a region.</li>'
-    '<li>SubnetId- Assign the EMR cluster to this Amazon VPC Subnet. </li>'
-    '<li>InstanceProfile - Provides access to other AWS services such as S3,'
-    ' DynamoDB from EC2 instances that are launched by EMR.. </li>'
-    '<li>EmrManagedMasterSecurityGroup - The identifier of the Amazon EC2'
-    ' security group (managed by Amazon Elastic MapReduce)'
-    ' for the master node. </li>'
-    '<li>EmrManagedSlaveSecurityGroup - The identifier of the Amazon EC2'
-    ' security group (managed by Amazon Elastic MapReduce)'
-    ' for the slave nodes.</li>'
-    '<li>AdditionalMasterSecurityGroups - A list of additional Amazon EC2'
-    ' security group IDs for the master node</li>'
-    '<li>AdditionalSlaveSecurityGroups - A list of additional Amazon EC2'
-    ' security group IDs for the slave nodes.</li>')
+USE_DEFAULT_ROLES = f'<p>Uses --service-role=<code>{EMR_ROLE_NAME}</code>, and --ec2-attributes InstanceProfile=<code>{EC2_ROLE_NAME}</code>To create the default service role and instance profile use <code>aws emr create-default-roles</code> command. </p>'
+EC2_ATTRIBUTES = f'<p>Specifies the following Amazon EC2 attributes: KeyName, AvailabilityZone, SubnetId, InstanceProfile, EmrManagedMasterSecurityGroup, EmrManagedSlaveSecurityGroup, AdditionalMasterSecurityGroups and AdditionalSlaveSecurityGroups. AvailabilityZone and Subnet cannot be specified together. To create the default instance profile <code>{EC2_ROLE_NAME}</code>, use <code>aws emr create-default-roles</code> command. </p>This command will also create the default EMR service role <code>{EMR_ROLE_NAME}</code>.<li>KeyName - the name of the AWS EC2 key pair you are using to launch the cluster.</li><li>AvailabilityZone - An isolated resource location within a region.</li><li>SubnetId- Assign the EMR cluster to this Amazon VPC Subnet. </li><li>InstanceProfile - Provides access to other AWS services such as S3, DynamoDB from EC2 instances that are launched by EMR.. </li><li>EmrManagedMasterSecurityGroup - The identifier of the Amazon EC2 security group (managed by Amazon Elastic MapReduce) for the master node. </li><li>EmrManagedSlaveSecurityGroup - The identifier of the Amazon EC2 security group (managed by Amazon Elastic MapReduce) for the slave nodes.</li><li>AdditionalMasterSecurityGroups - A list of additional Amazon EC2 security group IDs for the master node</li><li>AdditionalSlaveSecurityGroups - A list of additional Amazon EC2 security group IDs for the slave nodes.</li>'
 
 AUTO_TERMINATE = (
     '<p>Specifies whether the cluster should terminate after'

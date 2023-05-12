@@ -107,13 +107,17 @@ class TestExecutor(unittest.TestCase):
                             10, queue.Queue(maxsize=1))
         with temporary_file('rb+') as f:
             executor.start()
+
+
             class FloodIOQueueTask(object):
                 PRIORITY = 10
 
                 def __call__(self):
-                    for i in range(50):
+                    for _ in range(50):
                         executor.write_queue.put(IORequest(f.name, 0,
                                                            b'foobar', False))
+
+
             executor.submit(FloodIOQueueTask())
             executor.initiate_shutdown()
             executor.wait_until_shutdown()

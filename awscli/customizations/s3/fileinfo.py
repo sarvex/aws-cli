@@ -41,9 +41,8 @@ def save_file(filename, response_data, last_update, is_stream=False):
             if not os.path.exists(d):
                 os.makedirs(d)
         except OSError as e:
-            if not e.errno == errno.EEXIST:
-                raise CreateDirectoryError(
-                    "Could not create directory %s: %s" % (d, e))
+            if e.errno != errno.EEXIST:
+                raise CreateDirectoryError(f"Could not create directory {d}: {e}")
     md5 = hashlib.md5()
     file_chunks = iter(partial(body.read, 1024 * 1024), b'')
     if is_stream:
@@ -55,11 +54,14 @@ def save_file(filename, response_data, last_update, is_stream=False):
         with open(filename, 'wb') as out_file:
             write_to_file(out_file, etag, md5, file_chunks)
 
-    if not _is_multipart_etag(etag) and sse != 'aws:kms':
-        if etag != md5.hexdigest():
-            if not is_stream:
-                os.remove(filename)
-            raise MD5Error(filename)
+    if (
+        not _is_multipart_etag(etag)
+        and sse != 'aws:kms'
+        and etag != md5.hexdigest()
+    ):
+        if not is_stream:
+            os.remove(filename)
+        raise MD5Error(filename)
 
     if not is_stream:
         last_update_tuple = last_update.timetuple()
@@ -329,5 +331,4 @@ class FileInfo(TaskInfo):
         params = {'Bucket': bucket, 'Key': key}
         self._handle_object_params(params)
         response_data = self.client.create_multipart_upload(**params)
-        upload_id = response_data['UploadId']
-        return upload_id
+        return response_data['UploadId']

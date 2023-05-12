@@ -41,8 +41,8 @@ def validate_mutually_exclusive_handler(*groups):
 def validate_mutually_exclusive(parsed_args, *groups):
     """Validate mututally exclusive groups in the parsed args."""
     args_dict = vars(parsed_args)
-    all_args = set(arg for group in groups for arg in group)
-    if not any(k in all_args for k in args_dict if args_dict[k] is not None):
+    all_args = {arg for group in groups for arg in group}
+    if all(k not in all_args for k in args_dict if args_dict[k] is not None):
         # If none of the specified args are in a mutually exclusive group
         # there is nothing left to validate.
         return
@@ -54,7 +54,7 @@ def validate_mutually_exclusive(parsed_args, *groups):
             continue
         if current_group is None:
             current_group = key_group
-        elif not key_group == current_group:
+        elif key_group != current_group:
             raise ValueError('The key "%s" cannot be specified when one '
                              'of the following keys are also specified: '
                              '%s' % (key, ', '.join(current_group)))

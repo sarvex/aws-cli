@@ -25,7 +25,7 @@ class FileFormatTest(unittest.TestCase):
         Format a paths for directory operation.  There are slashes at the
         end of the paths.
         """
-        src = '.' + os.sep
+        src = f'.{os.sep}'
         dest = 's3://kyknapp/golfVid/'
         parameters = {'dir_op': True}
         files = self.file_format.format(src, dest, parameters)
@@ -75,7 +75,7 @@ class FileFormatTest(unittest.TestCase):
         destination directory given.
         """
         src = 's3://kyknapp/golfVid/hello.txt'
-        dest = 'someFile' + os.sep
+        dest = f'someFile{os.sep}'
         parameters = {'dir_op': False}
         files = self.file_format.format(src, dest, parameters)
 

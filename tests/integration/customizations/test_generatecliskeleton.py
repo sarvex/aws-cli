@@ -35,9 +35,12 @@ def test_can_generate_skeletons_for_all_service_comands():
 
 
 def _test_gen_skeleton(command_name, operation_name):
-    p = aws('%s %s --generate-cli-skeleton' % (command_name, operation_name))
-    assert_equal(p.rc, 0, 'Received non zero RC (%s) for command: %s %s'
-                 % (p.rc, command_name, operation_name))
+    p = aws(f'{command_name} {operation_name} --generate-cli-skeleton')
+    assert_equal(
+        p.rc,
+        0,
+        f'Received non zero RC ({p.rc}) for command: {command_name} {operation_name}',
+    )
     try:
         parsed = json.loads(p.stdout)
     except ValueError as e:

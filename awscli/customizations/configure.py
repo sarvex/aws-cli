@@ -48,10 +48,7 @@ class SectionNotFoundError(Exception):
 
 
 def _mask_value(current_value):
-    if current_value is None:
-        return 'None'
-    else:
-        return ('*' * 16) + current_value[-4:]
+    return 'None' if current_value is None else ('*' * 16) + current_value[-4:]
 
 
 class InteractivePrompter(object):
@@ -59,7 +56,7 @@ class InteractivePrompter(object):
     def get_value(self, current_value, config_name, prompt_text=''):
         if config_name in ('aws_access_key_id', 'aws_secret_access_key'):
             current_value = _mask_value(current_value)
-        response = raw_input("%s [%s]: " % (prompt_text, current_value))
+        response = raw_input(f"{prompt_text} [{current_value}]: ")
         if not response:
             # If the user hits enter, we return a value of None
             # instead of an empty string.  That way we can determine
@@ -230,11 +227,12 @@ class ConfigFileWriter(object):
         new_contents = []
         for key, value in list(new_values.items()):
             if isinstance(value, dict):
-                subindent = indent + '    '
+                subindent = f'{indent}    '
                 new_contents.append('%s%s =\n' % (indent, key))
-                for subkey, subval in list(value.items()):
-                    new_contents.append('%s%s = %s\n' % (subindent, subkey,
-                                                         subval))
+                new_contents.extend(
+                    '%s%s = %s\n' % (subindent, subkey, subval)
+                    for subkey, subval in list(value.items())
+                )
             else:
                 new_contents.append('%s%s = %s\n' % (indent, key, value))
             del new_values[key]
@@ -242,10 +240,9 @@ class ConfigFileWriter(object):
 
     def _matches_section(self, match, section_name):
         parts = section_name.split(' ')
-        unquoted_match = match.group(0) == '[%s]' % section_name
+        unquoted_match = match.group(0) == f'[{section_name}]'
         if len(parts) > 1:
-            quoted_match = match.group(0) == '[%s "%s"]' % (
-                parts[0], ' '.join(parts[1:]))
+            quoted_match = match.group(0) == f"""[{parts[0]} "{' '.join(parts[1:])}"]"""
             return unquoted_match or quoted_match
         return unquoted_match
 
@@ -388,13 +385,7 @@ class ConfigureSetCommand(BasicCommand):
         # 1. What section we're writing to (section).
         # 2. The name of the config key (varname)
         # 3. The actual value (value).
-        if '.' not in varname:
-            # unqualified name, scope it to the current
-            # profile (or leave it as the 'default' section if
-            # no profile is set).
-            if self._session.profile is not None:
-                section = 'profile %s' % self._session.profile
-        else:
+        if '.' in varname:
             # First figure out if it's been scoped to a profile.
             parts = varname.split('.')
             if parts[0] in ('default', 'profile'):
@@ -404,7 +395,7 @@ class ConfigureSetCommand(BasicCommand):
                     remaining = parts[1:]
                 else:
                     # [profile, profile_name, ...]
-                    section = "profile %s" % parts[1]
+                    section = f"profile {parts[1]}"
                     remaining = parts[2:]
                 varname = remaining[0]
                 if len(remaining) == 2:
@@ -413,6 +404,8 @@ class ConfigureSetCommand(BasicCommand):
                 # Otherwise it's something like "set preview.service true"
                 # of something in the [plugin] section.
                 section, varname = parts
+        elif self._session.profile is not None:
+            section = f'profile {self._session.profile}'
         config_filename = os.path.expanduser(
             self._session.get_config_variable('config_file'))
         updated_config = {'__section__': section, varname: value}
@@ -563,8 +556,7 @@ class ConfigureCommand(BasicCommand):
             self._write_out_creds_file_values(new_values,
                                               parsed_globals.profile)
             if parsed_globals.profile is not None:
-                new_values['__section__'] = (
-                    'profile %s' % parsed_globals.profile)
+                new_values['__section__'] = f'profile {parsed_globals.profile}'
             self._config_writer.update_config(new_values, config_filename)
 
     def _write_out_creds_file_values(self, new_values, profile_name):

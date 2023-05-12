@@ -20,7 +20,5 @@ def build_hbase_restore_from_backup_args(dir, backup_version=None):
             constants.HBASE_BACKUP_DIR, dir]
 
     if backup_version is not None:
-        args.append(constants.HBASE_BACKUP_VERSION_FOR_RESTORE)
-        args.append(backup_version)
-
+        args.extend((constants.HBASE_BACKUP_VERSION_FOR_RESTORE, backup_version))
     return args

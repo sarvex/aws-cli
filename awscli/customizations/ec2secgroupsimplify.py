@@ -136,45 +136,47 @@ def _build_ip_permissions(params, key, value):
 class ProtocolArgument(CustomArgument):
 
     def add_to_params(self, parameters, value):
-        if value:
-            try:
-                int_value = int(value)
-                if (int_value < 0 or int_value > 255) and int_value != -1:
-                    msg = ('protocol numbers must be in the range 0-255 '
-                           'or -1 to specify all protocols')
-                    raise ValueError(msg)
-            except ValueError:
-                if value not in ('tcp', 'udp', 'icmp', 'all'):
-                    msg = ('protocol parameter should be one of: '
-                           'tcp|udp|icmp|all or any valid protocol number.')
-                    raise ValueError(msg)
-                if value == 'all':
-                    value = '-1'
-            _build_ip_permissions(parameters, 'IpProtocol', value)
+        if not value:
+            return
+        try:
+            int_value = int(value)
+            if (int_value < 0 or int_value > 255) and int_value != -1:
+                msg = ('protocol numbers must be in the range 0-255 '
+                       'or -1 to specify all protocols')
+                raise ValueError(msg)
+        except ValueError:
+            if value not in ('tcp', 'udp', 'icmp', 'all'):
+                msg = ('protocol parameter should be one of: '
+                       'tcp|udp|icmp|all or any valid protocol number.')
+                raise ValueError(msg)
+            if value == 'all':
+                value = '-1'
+        _build_ip_permissions(parameters, 'IpProtocol', value)
 
 
 class PortArgument(CustomArgument):
 
     def add_to_params(self, parameters, value):
-        if value:
-            try:
-                if value == '-1' or value == 'all':
-                    fromstr = '-1'
-                    tostr = '-1'
-                elif '-' in value:
-                    # We can get away with simple logic here because
-                    # argparse will not allow values such as
-                    # "-1-8", and these aren't actually valid
-                    # values any from from/to ports.
-                    fromstr, tostr = value.split('-', 1)
-                else:
-                    fromstr, tostr = (value, value)
-                _build_ip_permissions(parameters, 'FromPort', int(fromstr))
-                _build_ip_permissions(parameters, 'ToPort', int(tostr))
-            except ValueError:
-                msg = ('port parameter should be of the '
-                       'form <from[-to]> (e.g. 22 or 22-25)')
-                raise ValueError(msg)
+        if not value:
+            return
+        try:
+            if value in ['-1', 'all']:
+                fromstr = '-1'
+                tostr = '-1'
+            elif '-' in value:
+                # We can get away with simple logic here because
+                # argparse will not allow values such as
+                # "-1-8", and these aren't actually valid
+                # values any from from/to ports.
+                fromstr, tostr = value.split('-', 1)
+            else:
+                fromstr, tostr = (value, value)
+            _build_ip_permissions(parameters, 'FromPort', int(fromstr))
+            _build_ip_permissions(parameters, 'ToPort', int(tostr))
+        except ValueError:
+            msg = ('port parameter should be of the '
+                   'form <from[-to]> (e.g. 22 or 22-25)')
+            raise ValueError(msg)
 
 
 class CidrArgument(CustomArgument):

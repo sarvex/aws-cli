@@ -132,7 +132,7 @@ def temporary_file(mode):
 
     """
     temporary_directory = tempfile.mkdtemp()
-    basename = 'tmpfile-%s-%s' % (int(time.time()), random.randint(1, 1000))
+    basename = f'tmpfile-{int(time.time())}-{random.randint(1, 1000)}'
     full_filename = os.path.join(temporary_directory, basename)
     open(full_filename, 'w').close()
     try:
@@ -155,7 +155,7 @@ def create_bucket(session, name=None, region=None):
     else:
         rand1 = ''.join(random.sample(string.ascii_lowercase + string.digits,
                                       10))
-        bucket_name = 'awscli-s3test-' + str(rand1)
+        bucket_name = f'awscli-s3test-{rand1}'
     params = {'Bucket': bucket_name}
     if region != 'us-east-1':
         params['CreateBucketConfiguration'] = {'LocationConstraint': region}
@@ -315,10 +315,8 @@ class BaseAWSCommandParamsTest(unittest.TestCase):
             last_kwargs = copy.copy(self.last_kwargs)
             if ignore_params is not None:
                 for key in ignore_params:
-                    try:
+                    with contextlib.suppress(KeyError):
                         del last_kwargs[key]
-                    except KeyError:
-                        pass
             if params != last_kwargs:
                 self.fail("Actual params did not match expected params.\n"
                           "Expected:\n\n"
@@ -337,11 +335,7 @@ class BaseAWSCommandParamsTest(unittest.TestCase):
         self.driver.session.register('before-call', self.before_call)
         self.driver.session.register('before-parameter-build',
                                 self.before_parameter_build)
-        if not isinstance(cmd, list):
-            cmdlist = cmd.split()
-        else:
-            cmdlist = cmd
-
+        cmdlist = cmd.split() if not isinstance(cmd, list) else cmd
         with capture_output() as captured:
             try:
                 rc = self.driver.main(cmdlist)
@@ -488,8 +482,8 @@ def aws(command, collect_memory=False, env_vars=None,
     if 'AWS_TEST_COMMAND' in os.environ:
         aws_command = os.environ['AWS_TEST_COMMAND']
     else:
-        aws_command = 'python %s' % get_aws_cmd()
-    full_command = '%s %s' % (aws_command, command)
+        aws_command = f'python {get_aws_cmd()}'
+    full_command = f'{aws_command} {command}'
     stdout_encoding = get_stdout_encoding()
     if isinstance(full_command, six.text_type) and not six.PY3:
         full_command = full_command.encode(stdout_encoding)
@@ -506,9 +500,7 @@ def aws(command, collect_memory=False, env_vars=None,
         return process
     memory = None
     if not collect_memory:
-        kwargs = {}
-        if input_data:
-            kwargs = {'input': input_data}
+        kwargs = {'input': input_data} if input_data else {}
         stdout, stderr = process.communicate(**kwargs)
     else:
         stdout, stderr, memory = _wait_and_collect_mem(process)
@@ -533,8 +525,8 @@ def _wait_and_collect_mem(process):
         get_memory = _get_memory_with_ps
     else:
         raise ValueError(
-            "Can't collect memory for process on platform %s." %
-            platform.system())
+            f"Can't collect memory for process on platform {platform.system()}."
+        )
     memory = []
     while process.poll() is None:
         try:
@@ -555,7 +547,7 @@ def _get_memory_with_ps(pid):
     command_list.append(str(pid))
     p = Popen(command_list, stdout=PIPE)
     stdout = p.communicate()[0]
-    if not p.returncode == 0:
+    if p.returncode != 0:
         raise ProcessTerminatedError(str(pid))
     else:
         # Get the RSS from output that looks like this:
@@ -618,7 +610,7 @@ class BaseS3CLICommand(unittest.TestCase):
             'Key': key_name, 'Body': contents
         }
         if extra_args is not None:
-            call_args.update(extra_args)
+            call_args |= extra_args
         response = client.put_object(**call_args)
         self.addCleanup(self.delete_key, bucket_name, key_name)
 
@@ -671,13 +663,12 @@ class BaseS3CLICommand(unittest.TestCase):
     def head_object(self, bucket_name, key_name):
         client = self.session.create_client(
             's3', region_name=self.regions[bucket_name])
-        response = client.head_object(Bucket=bucket_name, Key=key_name)
-        return response
+        return client.head_object(Bucket=bucket_name, Key=key_name)
 
     def assert_no_errors(self, p):
         self.assertEqual(
-            p.rc, 0,
-            "Non zero rc (%s) received: %s" % (p.rc, p.stdout + p.stderr))
+            p.rc, 0, f"Non zero rc ({p.rc}) received: {p.stdout + p.stderr}"
+        )
         self.assertNotIn("Error:", p.stderr)
         self.assertNotIn("failed:", p.stderr)
         self.assertNotIn("client error", p.stderr)

@@ -40,10 +40,10 @@ def add_examples(help_command, **kwargs):
                 os.path.abspath(__file__))), 'examples')
     doc_path = os.path.join(doc_path,
                             help_command.event_class.replace('.', os.path.sep))
-    doc_path = doc_path + '.rst'
+    doc_path = f'{doc_path}.rst'
     LOG.debug("Looking for example file at: %s", doc_path)
     if os.path.isfile(doc_path):
         help_command.doc.style.h2('Examples')
         fp = open(doc_path)
-        for line in fp.readlines():
+        for line in fp:
             help_command.doc.write(line)

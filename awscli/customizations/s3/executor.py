@@ -61,17 +61,19 @@ class Executor(object):
 
     @property
     def num_tasks_failed(self):
-        tasks_failed = 0
-        if self.print_thread is not None:
-            tasks_failed = self.print_thread.num_errors_seen
-        return tasks_failed
+        return (
+            self.print_thread.num_errors_seen
+            if self.print_thread is not None
+            else 0
+        )
 
     @property
     def num_tasks_warned(self):
-        tasks_warned = 0
-        if self.print_thread is not None:
-            tasks_warned = self.print_thread.num_warnings_seen
-        return tasks_warned
+        return (
+            self.print_thread.num_warnings_seen
+            if self.print_thread is not None
+            else 0
+        )
 
     def start(self):
         self.io_thread.start()
@@ -81,7 +83,7 @@ class Executor(object):
         # See .join() for more info.
         self.print_thread.start()
         LOGGER.debug("Using a threadpool size of: %s", self.num_threads)
-        for i in range(self.num_threads):
+        for _ in range(self.num_threads):
             worker = Worker(queue=self.queue)
             worker.setDaemon(True)
             self.threads_list.append(worker)
@@ -110,7 +112,7 @@ class Executor(object):
         # Implementation detail:  we only queue the worker threads
         # to shutdown.  The print/io threads are shutdown in the
         # ``wait_until_shutdown`` method.
-        for i in range(self.num_threads):
+        for _ in range(self.num_threads):
             LOGGER.debug(
                 "Queueing end sentinel for worker thread (priority: %s)",
                 priority)
@@ -308,9 +310,7 @@ class PrintThread(threading.Thread):
             if print_str in self._progress_dict:
                 self._progress_dict[print_str]['parts'] += 1
             else:
-                self._progress_dict[print_str] = {}
-                self._progress_dict[print_str]['parts'] = 1
-                self._progress_dict[print_str]['total'] = total_part
+                self._progress_dict[print_str] = {'parts': 1, 'total': total_part}
         else:
             print_components = print_str.split(':')
             final_str += print_str.ljust(self._progress_length, ' ')
@@ -337,13 +337,12 @@ class PrintThread(threading.Thread):
     def _make_progress_bar(self):
         """Creates the progress bar string to print out."""
 
-        prog_str = "Completed %s " % self._num_parts
+        prog_str = f"Completed {self._num_parts} "
         num_files = self._total_files
         if self._total_files != '...':
-            prog_str += "of %s " % self._total_parts
+            prog_str += f"of {self._total_parts} "
             num_files = self._total_files - self._file_count
-        prog_str += "part(s) with %s file(s) remaining" % \
-            num_files
+        prog_str += f"part(s) with {num_files} file(s) remaining"
         length_prog = len(prog_str)
         prog_str += '\r'
         prog_str = prog_str.ljust(self._progress_length, ' ')

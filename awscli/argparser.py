@@ -30,20 +30,20 @@ class CLIArgParser(argparse.ArgumentParser):
         seem to be any other way to change it.
         """
         # converted value must be one of the choices (if specified)
-        if action.choices is not None and value not in action.choices:
-            msg = ['Invalid choice, valid choices are:\n']
-            for i in range(len(action.choices))[::self.ChoicesPerLine]:
-                current = []
-                for choice in action.choices[i:i+self.ChoicesPerLine]:
-                    current.append('%-40s' % choice)
-                msg.append(' | '.join(current))
-            possible = get_close_matches(value, action.choices, cutoff=0.8)
-            if possible:
-                extra = ['\n\nInvalid choice: %r, maybe you meant:\n' % value]
-                for word in possible:
-                    extra.append('  * %s' % word)
-                msg.extend(extra)
-            raise argparse.ArgumentError(action, '\n'.join(msg))
+        if action.choices is None or value in action.choices:
+            return
+        msg = ['Invalid choice, valid choices are:\n']
+        for i in range(len(action.choices))[::self.ChoicesPerLine]:
+            current = [
+                '%-40s' % choice
+                for choice in action.choices[i : i + self.ChoicesPerLine]
+            ]
+            msg.append(' | '.join(current))
+        if possible := get_close_matches(value, action.choices, cutoff=0.8):
+            extra = ['\n\nInvalid choice: %r, maybe you meant:\n' % value]
+            extra.extend(f'  * {word}' for word in possible)
+            msg.extend(extra)
+        raise argparse.ArgumentError(action, '\n'.join(msg))
 
     def parse_known_args(self, args, namespace=None):
         parsed, remaining = super(CLIArgParser, self).parse_known_args(args, namespace)
@@ -81,10 +81,7 @@ class MainArgParser(CLIArgParser):
         self._build(command_table, version_string, argument_table)
 
     def _create_choice_help(self, choices):
-        help_str = ''
-        for choice in sorted(choices):
-            help_str += '* %s\n' % choice
-        return help_str
+        return ''.join('* %s\n' % choice for choice in sorted(choices))
 
     def _build(self, command_table, version_string, argument_table):
         for argument_name in argument_table:
@@ -139,10 +136,9 @@ class ArgTableArgParser(CLIArgParser):
                               nargs='?')
 
     def parse_known_args(self, args, namespace=None):
-        if len(args) == 1 and args[0] == 'help':
-            namespace = argparse.Namespace()
-            namespace.help = 'help'
-            return namespace, []
-        else:
+        if len(args) != 1 or args[0] != 'help':
             return super(ArgTableArgParser, self).parse_known_args(
                 args, namespace)
+        namespace = argparse.Namespace()
+        namespace.help = 'help'
+        return namespace, []

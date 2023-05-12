@@ -330,19 +330,7 @@ class ListCommand(S3Command):
             self._list_all_objects(bucket, key, parsed_args.page_size)
         if parsed_args.summarize:
             self._print_summary()
-        if key:
-            # User specified a key to look for. We should return an rc of one
-            # if there are no matching keys and/or prefixes or return an rc
-            # of zero if there are matching keys or prefixes.
-            return self._check_no_objects()
-        else:
-            # This covers the case when user is trying to list all of of
-            # the buckets or is trying to list the objects of a bucket
-            # (without specifying a key). For both situations, a rc of 0
-            # should be returned because applicable errors are supplied by
-            # the server (i.e. bucket not existing). These errors will be
-            # thrown before reaching the automatic return of rc of zero.
-            return 0
+        return self._check_no_objects() if key else 0
 
     def _list_all_objects(self, bucket, key, page_size=None):
         paginator = self.client.get_paginator('list_objects')
@@ -362,7 +350,7 @@ class ListCommand(S3Command):
             prefix_components = common_prefix['Prefix'].split('/')
             prefix = prefix_components[-2]
             pre_string = "PRE".rjust(30, " ")
-            print_str = pre_string + ' ' + prefix + '/\n'
+            print_str = f'{pre_string} {prefix}' + '/\n'
             uni_print(print_str)
         for content in contents:
             last_mod_str = self._make_last_mod_str(content['LastModified'])
@@ -374,8 +362,7 @@ class ListCommand(S3Command):
                 filename = filename_components[-1]
             else:
                 filename = content['Key']
-            print_str = last_mod_str + ' ' + size_str + ' ' + \
-                filename + '\n'
+            print_str = (f'{last_mod_str} {size_str} {filename}' + '\n')
             uni_print(print_str)
         self._at_first_page = False
 
@@ -384,7 +371,7 @@ class ListCommand(S3Command):
         buckets = response_data['Buckets']
         for bucket in buckets:
             last_mod_str = self._make_last_mod_str(bucket['CreationDate'])
-            print_str = last_mod_str + ' ' + bucket['Name'] + '\n'
+            print_str = f'{last_mod_str} ' + bucket['Name'] + '\n'
             uni_print(print_str)
 
     def _list_all_objects_recursive(self, bucket, key, page_size=None):
@@ -395,11 +382,7 @@ class ListCommand(S3Command):
             self._display_page(response_data, use_basename=False)
 
     def _check_no_objects(self):
-        if self._empty_result and self._at_first_page:
-            # Nothing was returned in the first page of results when listing
-            # the objects.
-            return 1
-        return 0
+        return 1 if self._empty_result and self._at_first_page else 0
 
     def _make_last_mod_str(self, last_mod):
         """
@@ -420,10 +403,7 @@ class ListCommand(S3Command):
         """
         This function creates the size string when objects are being listed.
         """
-        if self._human_readable:
-            size_str = human_readable_size(size)
-        else:
-            size_str = str(size)
+        size_str = human_readable_size(size) if self._human_readable else str(size)
         return size_str.rjust(10, ' ')
 
     def _print_summary(self):
@@ -533,12 +513,11 @@ class S3TransferCommand(S3Command):
         # some refactoring though to move this to either of those classes.
         # For now, moving this out of CommandParameters allows for that class
         # to be kept simple.
-        if 'force' in parameters:
-            if parameters['force']:
-                bucket = find_bucket_key(parameters['src'][5:])[0]
-                path = 's3://' + bucket
-                del_objects = RmCommand(self._session)
-                del_objects([path, '--recursive'], parsed_globals)
+        if 'force' in parameters and parameters['force']:
+            bucket = find_bucket_key(parameters['src'][5:])[0]
+            path = f's3://{bucket}'
+            del_objects = RmCommand(self._session)
+            del_objects([path, '--recursive'], parsed_globals)
 
 
 class CpCommand(S3TransferCommand):
@@ -637,14 +616,16 @@ class CommandArchitecture(object):
             endpoint_url=self.parameters['endpoint_url'],
             verify=self.parameters['verify_ssl']
         )
-        if self.parameters['source_region']:
-            if self.parameters['paths_type'] == 's3s3':
-                self._source_client = get_client(
-                    self.session,
-                    region=self.parameters['source_region'][0],
-                    endpoint_url=None,
-                    verify=self.parameters['verify_ssl']
-                )
+        if (
+            self.parameters['source_region']
+            and self.parameters['paths_type'] == 's3s3'
+        ):
+            self._source_client = get_client(
+                self.session,
+                region=self.parameters['source_region'][0],
+                endpoint_url=None,
+                verify=self.parameters['verify_ssl']
+            )
 
     def create_instructions(self):
         """
@@ -664,10 +645,7 @@ class CommandArchitecture(object):
         self.instructions.append('s3_handler')
 
     def needs_filegenerator(self):
-        if self.cmd in ['mb', 'rb'] or self.parameters['is_stream']:
-            return False
-        else:
-            return True
+        return self.cmd not in ['mb', 'rb'] and not self.parameters['is_stream']
 
     def choose_sync_strategies(self):
         """Determines the sync strategy for the command.
@@ -676,10 +654,9 @@ class CommandArchitecture(object):
         strategy can overide the default strategy if it returns the instance
         of its self when the event is emitted.
         """
-        sync_strategies = {}
-        # Set the default strategies.
-        sync_strategies['file_at_src_and_dest_sync_strategy'] = \
-            SizeAndLastModifiedSync()
+        sync_strategies = {
+            'file_at_src_and_dest_sync_strategy': SizeAndLastModifiedSync()
+        }
         sync_strategies['file_not_at_dest_sync_strategy'] = MissingFileSync()
         sync_strategies['file_not_at_src_sync_strategy'] = NeverSync()
 
@@ -724,16 +701,11 @@ class CommandArchitecture(object):
         files = FileFormat().format(src, dest, self.parameters)
         rev_files = FileFormat().format(dest, src, self.parameters)
 
-        cmd_translation = {}
-        cmd_translation['locals3'] = {'cp': 'upload', 'sync': 'upload',
-                                      'mv': 'move'}
-        cmd_translation['s3s3'] = {'cp': 'copy', 'sync': 'copy', 'mv': 'move'}
-        cmd_translation['s3local'] = {'cp': 'download', 'sync': 'download',
-                                      'mv': 'move'}
-        cmd_translation['s3'] = {
-            'rm': 'delete',
-            'mb': 'make_bucket',
-            'rb': 'remove_bucket'
+        cmd_translation = {
+            'locals3': {'cp': 'upload', 'sync': 'upload', 'mv': 'move'},
+            's3s3': {'cp': 'copy', 'sync': 'copy', 'mv': 'move'},
+            's3local': {'cp': 'download', 'sync': 'download', 'mv': 'move'},
+            's3': {'rm': 'delete', 'mb': 'make_bucket', 'rb': 'remove_bucket'},
         }
         result_queue = queue.Queue()
         operation_name = cmd_translation[paths_type][self.cmd]
@@ -895,11 +867,12 @@ class CommandParameters(object):
         # If we're using a mv command, you can't copy the object onto itself.
         params = self.parameters
         if self.cmd == 'mv' and self._same_path(params['src'], params['dest']):
-            raise ValueError("Cannot mv a file onto itself: '%s' - '%s'" % (
-                params['src'], params['dest']))
+            raise ValueError(
+                f"Cannot mv a file onto itself: '{params['src']}' - '{params['dest']}'"
+            )
 
     def _same_path(self, src, dest):
-        if not self.parameters['paths_type'] == 's3s3':
+        if self.parameters['paths_type'] != 's3s3':
             return False
         elif src == dest:
             return True
@@ -929,13 +902,12 @@ class CommandParameters(object):
                          's3': ['mb', 'rb', 'rm'],
                          'local': [], 'locallocal': []}
         paths_type = ''
-        usage = "usage: aws s3 %s %s" % (self.cmd,
-                                         self.usage)
+        usage = f"usage: aws s3 {self.cmd} {self.usage}"
         for i in range(len(paths)):
             if paths[i].startswith('s3://'):
-                paths_type = paths_type + 's3'
+                paths_type = f'{paths_type}s3'
             else:
-                paths_type = paths_type + 'local'
+                paths_type = f'{paths_type}local'
         if self.cmd in template_type[paths_type]:
             self.parameters['paths_type'] = paths_type
         else:
@@ -965,8 +937,6 @@ class CommandParameters(object):
                     raise Exception("Error: Requires a local file")
                 elif os.path.isfile(src_path) and dir_op:
                     raise Exception("Error: Requires a local directory")
-                else:
-                    pass
             else:
                 raise Exception("Error: Local path does not exist")
 

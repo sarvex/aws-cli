@@ -20,27 +20,23 @@ class TestModifyClusterAttributes(BaseAWSCommandParamsTest):
     prefix = 'emr modify-cluster-attributes'
 
     def test_visible_to_all(self):
-        args = ' --cluster-id j-ABC123456 --visible-to-all-users'
-        cmdline = self.prefix + args
         result = {'JobFlowIds': ['j-ABC123456'], 'VisibleToAllUsers': True}
+        cmdline = f'{self.prefix} --cluster-id j-ABC123456 --visible-to-all-users'
         self.assert_params_for_cmd(cmdline, result)
 
     def test_no_visible_to_all(self):
-        args = ' --cluster-id j-ABC123456 --no-visible-to-all-users'
-        cmdline = self.prefix + args
         result = {'JobFlowIds': ['j-ABC123456'], 'VisibleToAllUsers': False}
+        cmdline = f'{self.prefix} --cluster-id j-ABC123456 --no-visible-to-all-users'
         self.assert_params_for_cmd(cmdline, result)
 
     def test_termination_protected(self):
-        args = ' --cluster-id j-ABC123456 --termination-protected'
-        cmdline = self.prefix + args
         result = {'JobFlowIds': ['j-ABC123456'], 'TerminationProtected': True}
+        cmdline = f'{self.prefix} --cluster-id j-ABC123456 --termination-protected'
         self.assert_params_for_cmd(cmdline, result)
 
     def test_no_termination_protected(self):
-        args = ' --cluster-id j-ABC123456 --no-termination-protected'
-        cmdline = self.prefix + args
         result = {'JobFlowIds': ['j-ABC123456'], 'TerminationProtected': False}
+        cmdline = f'{self.prefix} --cluster-id j-ABC123456 --no-termination-protected'
         self.assert_params_for_cmd(cmdline, result)
 
     def test_visible_to_all_and_no_visible_to_all(self):
@@ -92,12 +88,11 @@ class TestModifyClusterAttributes(BaseAWSCommandParamsTest):
             self.operations_called[1][1], result_set_termination_protection)
 
     def test_at_least_one_option(self):
-        args = ' --cluster-id j-ABC123456'
-        cmdline = self.prefix + args
         expected_error_msg = (
             '\naws: error: Must specify one of the following boolean options: '
             '--visible-to-all-users|--no-visible-to-all-users, '
             '--termination-protected|--no-termination-protected.\n')
+        cmdline = f'{self.prefix} --cluster-id j-ABC123456'
         result = self.run_cmd(cmdline, 255)
         self.assertEquals(expected_error_msg, result[1])
 

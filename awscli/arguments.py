@@ -60,10 +60,7 @@ def create_argument_model_from_schema(schema):
     transformer = SchemaTransformer()
     shapes_map = transformer.transform(schema)
     shape_resolver = model.ShapeResolver(shapes_map)
-    # The SchemaTransformer guarantees that the top level shape
-    # will always be named 'InputShape'.
-    arg_shape = shape_resolver.get_shape_by_name('InputShape')
-    return arg_shape
+    return shape_resolver.get_shape_by_name('InputShape')
 
 
 class BaseCLIArgument(object):
@@ -126,7 +123,7 @@ class BaseCLIArgument(object):
 
     @property
     def cli_name(self):
-        return '--' + self._name
+        return f'--{self._name}'
 
     @property
     def cli_type_name(self):
@@ -250,10 +247,7 @@ class CustomArgument(BaseCLIArgument):
 
     @property
     def cli_name(self):
-        if self._positional_arg:
-            return self._name
-        else:
-            return '--' + self._name
+        return self._name if self._positional_arg else f'--{self._name}'
 
     def add_to_parser(self, parser):
         """
@@ -279,9 +273,7 @@ class CustomArgument(BaseCLIArgument):
 
     @property
     def required(self):
-        if self._required is None:
-            return False
-        return self._required
+        return False if self._required is None else self._required
 
     @required.setter
     def required(self, value):
@@ -306,10 +298,7 @@ class CustomArgument(BaseCLIArgument):
 
     @property
     def cli_type(self):
-        cli_type = str
-        if self._action in ['store_true', 'store_false']:
-            cli_type = bool
-        return cli_type
+        return bool if self._action in ['store_true', 'store_false'] else str
 
     @property
     def choices(self):
@@ -429,36 +418,32 @@ class CLIArgument(BaseCLIArgument):
     def add_to_params(self, parameters, value):
         if value is None:
             return
-        else:
-            # This is a two step process.  First is the process of converting
-            # the command line value into a python value.  Normally this is
-            # handled by argparse directly, but there are cases where extra
-            # processing is needed.  For example, "--foo name=value" the value
-            # can be converted from "name=value" to {"name": "value"}.  This is
-            # referred to as the "unpacking" process.  Once we've unpacked the
-            # argument value, we have to decide how this is converted into
-            # something that can be consumed by botocore.  Many times this is
-            # just associating the key and value in the params dict as down
-            # below.  Sometimes this can be more complicated, and subclasses
-            # can customize as they need.
-            unpacked = self._unpack_argument(value)
-            LOG.debug('Unpacked value of %r for parameter "%s": %r', value,
-                      self.py_name, unpacked)
-            parameters[self._serialized_name] = unpacked
+        # This is a two step process.  First is the process of converting
+        # the command line value into a python value.  Normally this is
+        # handled by argparse directly, but there are cases where extra
+        # processing is needed.  For example, "--foo name=value" the value
+        # can be converted from "name=value" to {"name": "value"}.  This is
+        # referred to as the "unpacking" process.  Once we've unpacked the
+        # argument value, we have to decide how this is converted into
+        # something that can be consumed by botocore.  Many times this is
+        # just associating the key and value in the params dict as down
+        # below.  Sometimes this can be more complicated, and subclasses
+        # can customize as they need.
+        unpacked = self._unpack_argument(value)
+        LOG.debug('Unpacked value of %r for parameter "%s": %r', value,
+                  self.py_name, unpacked)
+        parameters[self._serialized_name] = unpacked
 
     def _unpack_argument(self, value):
         service_name = self._operation_model.service_model.endpoint_prefix
         operation_name = xform_name(self._operation_model.name, '-')
-        override = self._emit_first_response('process-cli-arg.%s.%s' % (
-            service_name, operation_name), param=self.argument_model,
-            cli_argument=self, value=value)
-        if override is not None:
-            # A plugin supplied an alternate conversion,
-            # use it instead.
-            return override
-        else:
-            # Fall back to the default arg processing.
-            return unpack_cli_arg(self, value)
+        override = self._emit_first_response(
+            f'process-cli-arg.{service_name}.{operation_name}',
+            param=self.argument_model,
+            cli_argument=self,
+            value=value,
+        )
+        return override if override is not None else unpack_cli_arg(self, value)
 
     def _emit(self, name, **kwargs):
         return self._event_emitter.emit(name, **kwargs)
@@ -508,14 +493,8 @@ class BooleanArgument(CLIArgument):
                                               serialized_name=serialized_name)
         self._mutex_group = None
         self._action = action
-        if dest is None:
-            self._destination = self.py_name
-        else:
-            self._destination = dest
-        if group_name is None:
-            self._group_name = self.name
-        else:
-            self._group_name = group_name
+        self._destination = self.py_name if dest is None else dest
+        self._group_name = self.name if group_name is None else group_name
         self._default = default
 
     def add_to_params(self, parameters, value):
@@ -534,7 +513,7 @@ class BooleanArgument(CLIArgument):
         # ourselves for the negative service.  We then insert both into the
         # arg table.
         argument_table[self.name] = self
-        negative_name = 'no-%s' % self.name
+        negative_name = f'no-{self.name}'
         negative_version = self.__class__(
             negative_name, self.argument_model,
             self._operation_model, self._event_emitter,

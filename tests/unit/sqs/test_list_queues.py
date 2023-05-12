@@ -25,7 +25,7 @@ class TestListQueues(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(cmdline, result)
 
     def test_prefix(self):
-        cmdline = self.prefix + ' --queue-name-prefix test'
+        cmdline = f'{self.prefix} --queue-name-prefix test'
         result = {'QueueNamePrefix': 'test'}
         self.assert_params_for_cmd(cmdline, result)
 

@@ -23,7 +23,7 @@ class TestDynamoDBWait(unittest.TestCase):
 
     def test_wait_table_exists(self):
         # Create a table.
-        table_name = 'awscliddb-%s' % random.randint(1, 10000)
+        table_name = f'awscliddb-{random.randint(1, 10000)}'
         self.client.create_table(
             TableName=table_name,
             ProvisionedThroughput={"ReadCapacityUnits": 5,
@@ -35,8 +35,8 @@ class TestDynamoDBWait(unittest.TestCase):
 
         # Wait for the table to be active.
         p = aws(
-            'dynamodb wait table-exists --table-name %s --region us-west-2' %
-            table_name)
+            f'dynamodb wait table-exists --table-name {table_name} --region us-west-2'
+        )
         self.assertEqual(p.rc, 0)
 
         # Make sure the table is active.

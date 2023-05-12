@@ -24,28 +24,27 @@ def create_filter(parameters):
     """Given the CLI parameters dict, create a Filter object."""
     # We need to evaluate all the filters based on the source
     # directory.
-    if parameters['filters']:
-        cli_filters = parameters['filters']
-        real_filters = []
-        for filter_type, filter_pattern in cli_filters:
-            real_filters.append((filter_type.lstrip('-'),
-                                 filter_pattern))
-        source_location = parameters['src']
-        if source_location.startswith('s3://'):
-            # This gives us (bucket, keyname) and we want
-            # the bucket to be the root dir.
-            src_rootdir = _get_s3_root(source_location,
-                                       parameters['dir_op'])
-            dst_rootdir = _get_local_root(parameters['dest'],
-                                          parameters['dir_op'])
-        else:
-            src_rootdir = _get_local_root(parameters['src'], parameters['dir_op'])
-            dst_rootdir = _get_s3_root(parameters['dest'],
-                                       parameters['dir_op'])
-
-        return Filter(real_filters, src_rootdir, dst_rootdir)
-    else:
+    if not parameters['filters']:
         return Filter({}, None, None)
+    cli_filters = parameters['filters']
+    real_filters = [
+        (filter_type.lstrip('-'), filter_pattern)
+        for filter_type, filter_pattern in cli_filters
+    ]
+    source_location = parameters['src']
+    if source_location.startswith('s3://'):
+        # This gives us (bucket, keyname) and we want
+        # the bucket to be the root dir.
+        src_rootdir = _get_s3_root(source_location,
+                                   parameters['dir_op'])
+        dst_rootdir = _get_local_root(parameters['dest'],
+                                      parameters['dir_op'])
+    else:
+        src_rootdir = _get_local_root(parameters['src'], parameters['dir_op'])
+        dst_rootdir = _get_s3_root(parameters['dest'],
+                                   parameters['dir_op'])
+
+    return Filter(real_filters, src_rootdir, dst_rootdir)
 
 
 def _get_s3_root(source_location, dir_op):
@@ -56,17 +55,15 @@ def _get_s3_root(source_location, dir_op):
         # is of the form: ``prefix/key``. We only want ``prefix`` included in
         # the the s3 root and not ``key``.
         key = '/'.join(key.split('/')[:-1])
-    # Rejoin the bucket and key back together.
-    s3_path = '/'.join([bucket, key])
-    return s3_path
+    return '/'.join([bucket, key])
 
 
 def _get_local_root(source_location, dir_op):
-    if dir_op:
-        rootdir = os.path.abspath(source_location)
-    else:
-        rootdir = os.path.abspath(os.path.dirname(source_location))
-    return rootdir
+    return (
+        os.path.abspath(source_location)
+        if dir_op
+        else os.path.abspath(os.path.dirname(source_location))
+    )
 
 
 class Filter(object):
@@ -90,14 +87,10 @@ class Filter(object):
         self.dst_patterns = self._full_path_patterns(patterns, dst_rootdir)
 
     def _full_path_patterns(self, original_patterns, rootdir):
-        # We need to transform the patterns into patterns that have
-        # the root dir prefixed, so things like ``--exclude "*"``
-        # will actually be ['exclude', '/path/to/root/*']
-        full_patterns = []
-        for pattern in original_patterns:
-            full_patterns.append(
-                (pattern[0], os.path.join(rootdir, pattern[1])))
-        return full_patterns
+        return [
+            (pattern[0], os.path.join(rootdir, pattern[1]))
+            for pattern in original_patterns
+        ]
 
     def call(self, file_infos):
         """

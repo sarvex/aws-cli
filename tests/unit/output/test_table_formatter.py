@@ -384,12 +384,13 @@ class TestTableFormatter(unittest.TestCase):
         self.formatter('OperationName', data, stream=self.stream)
         rendered = self.stream.getvalue()
         if rendered != table:
-            error_message = ['Expected table rendering does not match '
-                             'the actual table rendering:']
-            error_message.append('Expected:')
-            error_message.append(table)
-            error_message.append('Actual:')
-            error_message.append(rendered)
+            error_message = [
+                'Expected table rendering does not match the actual table rendering:',
+                'Expected:',
+                table,
+                'Actual:',
+                rendered,
+            ]
             self.fail('\n'.join(error_message))
 
     def test_list_table(self):

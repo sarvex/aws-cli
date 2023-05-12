@@ -33,10 +33,9 @@ class TestRestoreFromHBaseBackup(BaseAWSCommandParamsTest):
     }]
 
     def test_restore_from_hbase_backup(self):
-        args = ' --cluster-id j-ABCD --dir s3://abc/'
-        cmdline = self.prefix + args
         result = {'JobFlowId': 'j-ABCD', 'Steps': self.steps}
 
+        cmdline = f'{self.prefix} --cluster-id j-ABCD --dir s3://abc/'
         self.assert_params_for_cmd(cmdline, result)
 
     def test_restore_from_hbase_backup_version(self):

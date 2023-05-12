@@ -51,7 +51,7 @@ class TestErrorHandler(unittest.TestCase):
             self.assertEqual(e.error_message, 'Access Denied')
             self.assertEqual(e.operation_name, 'OperationName')
         except Exception as e:
-            self.fail("Unexpected error raised: %s" % e)
+            self.fail(f"Unexpected error raised: {e}")
         else:
             self.fail("Expected errorhandler.ClientError to be raised "
                       "but no exception was raised.")
@@ -71,7 +71,7 @@ class TestErrorHandler(unittest.TestCase):
         try:
             self.assertIsNone(handler(http_response, response, operation))
         except errorhandler.BaseOperationError as e:
-            self.fail("Unexpected error raised: %s" % e)
+            self.fail(f"Unexpected error raised: {e}")
 
 
 if __name__ == '__main__':

@@ -50,8 +50,10 @@ class TestBundleInstance(BaseAWSCommandParamsTest):
         self.datetime_patcher.stop
 
     def test_no_policy_provided(self):
-        args = ' --instance-id i-12345678 --owner-akid AKIAIOSFODNN7EXAMPLE'
-        args += ' --owner-sak wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
+        args = (
+            ' --instance-id i-12345678 --owner-akid AKIAIOSFODNN7EXAMPLE'
+            + ' --owner-sak wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
+        )
         args += ' --bucket mybucket --prefix foobar'
         args_list = (self.prefix + args).split()
         result =  {'InstanceId': 'i-12345678',
@@ -71,9 +73,11 @@ class TestBundleInstance(BaseAWSCommandParamsTest):
         policy = '{"notarealpolicy":true}'
         base64policy = base64.encodestring(six.b(policy)).strip().decode('utf-8')
         policy_signature = 'a5SmoLOxoM0MHpOdC25nE7KIafg='
-        args = ' --instance-id i-12345678 --owner-akid AKIAIOSFODNN7EXAMPLE'
-        args += ' --owner-sak wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
-        args += ' --bucket mybucket --prefix foobar --policy %s' % policy
+        args = (
+            ' --instance-id i-12345678 --owner-akid AKIAIOSFODNN7EXAMPLE'
+            + ' --owner-sak wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
+        )
+        args += f' --bucket mybucket --prefix foobar --policy {policy}'
         args_list = (self.prefix + args).split()
         result =  {'InstanceId': 'i-12345678',
                    'Storage': {
@@ -90,7 +94,7 @@ class TestBundleInstance(BaseAWSCommandParamsTest):
     def test_both(self):
         captured = cStringIO()
         json = """{"S3":{"Bucket":"foobar","Prefix":"fiebaz"}}"""
-        args = ' --instance-id i-12345678 --owner-aki blah --owner-sak blah --storage %s' % json
+        args = f' --instance-id i-12345678 --owner-aki blah --owner-sak blah --storage {json}'
         args_list = (self.prefix + args).split()
         self.assert_params_for_cmd(args_list, expected_rc=255)
 

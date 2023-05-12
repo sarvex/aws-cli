@@ -92,9 +92,9 @@ def unify_paging_params(argument_table, operation_model, event_name,
     argument_table['starting-token'] = PageArgument('starting-token',
                                                     STARTING_TOKEN_HELP,
                                                     parse_type='string')
-    input_members = operation_model.input_shape.members
     type_name = 'integer'
     if 'limit_key' in paginator_config:
+        input_members = operation_model.input_shape.members
         limit_key_shape = input_members[paginator_config['limit_key']]
         type_name = limit_key_shape.type_name
         if type_name not in PageArgument.type_map:
@@ -134,19 +134,15 @@ def _get_all_cli_input_tokens(pagination_config):
     # if it exists.
     tokens = _get_input_tokens(pagination_config)
     for token_name in tokens:
-        cli_name = xform_name(token_name, '-')
-        yield cli_name
+        yield xform_name(token_name, '-')
     if 'limit_key' in pagination_config:
         key_name = pagination_config['limit_key']
-        cli_name = xform_name(key_name, '-')
-        yield cli_name
+        yield xform_name(key_name, '-')
 
 
 def _get_input_tokens(pagination_config):
     tokens = pagination_config['input_token']
-    if not isinstance(tokens, list):
-        return [tokens]
-    return tokens
+    return [tokens] if not isinstance(tokens, list) else tokens
 
 
 def _get_cli_name(param_objects, token_name):
@@ -170,7 +166,7 @@ class PageArgument(BaseCLIArgument):
 
     @property
     def cli_name(self):
-        return '--' + self._name
+        return f'--{self._name}'
 
     @property
     def cli_type_name(self):

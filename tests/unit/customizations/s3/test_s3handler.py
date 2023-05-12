@@ -71,17 +71,23 @@ class S3HandlerTestDelete(S3HandlerBaseTest):
         Tests S3 deletes. The files used are the same generated from
         filegenerators_test.py.  This includes the create s3 file.
         """
-        keys = [self.bucket + '/another_directory/text2.txt',
-                self.bucket + '/text1.txt',
-                self.bucket + '/another_directory/']
-        tasks = []
-        for key in keys:
-            tasks.append(FileInfo(
-                src=key, src_type='s3',
-                dest_type='local', operation_name='delete',
+        keys = [
+            f'{self.bucket}/another_directory/text2.txt',
+            f'{self.bucket}/text1.txt',
+            f'{self.bucket}/another_directory/',
+        ]
+        tasks = [
+            FileInfo(
+                src=key,
+                src_type='s3',
+                dest_type='local',
+                operation_name='delete',
                 size=0,
                 client=self.client,
-                source_client=self.source_client))
+                source_client=self.source_client,
+            )
+            for key in keys
+        ]
         ref_calls = [
             ('DeleteObject',
              {'Bucket': self.bucket, 'Key': 'another_directory/text2.txt'}),
@@ -106,7 +112,7 @@ class S3HandlerTestURLEncodeDeletes(S3HandlerBaseTest):
         Tests S3 deletes. The files used are the same generated from
         filegenerators_test.py.  This includes the create s3 file.
         """
-        key = self.bucket + '/a+b/foo'
+        key = f'{self.bucket}/a+b/foo'
         tasks = [FileInfo(
             src=key, src_type='s3', dest_type='local',
             operation_name='delete', size=0,
@@ -136,19 +142,24 @@ class S3HandlerTestUpload(S3HandlerBaseTest):
                 max_concurrent_requests=1))
         self.bucket = 'mybucket'
         self.loc_files = make_loc_files(self.file_creator)
-        self.s3_files = [self.bucket + '/text1.txt',
-                         self.bucket + '/another_directory/text2.txt']
+        self.s3_files = [
+            f'{self.bucket}/text1.txt',
+            f'{self.bucket}/another_directory/text2.txt',
+        ]
 
     def test_upload(self):
         # Create file info objects to perform upload.
         files = [self.loc_files[0], self.loc_files[1]]
-        tasks = []
-        for i in range(len(files)):
-            tasks.append(FileInfo(
+        tasks = [
+            FileInfo(
                 src=self.loc_files[i],
                 dest=self.s3_files[i],
-                operation_name='upload', size=0,
-                client=self.client))
+                operation_name='upload',
+                size=0,
+                client=self.client,
+            )
+            for i in range(len(files))
+        ]
         # Perform the upload.
         self.parsed_responses = [
             {'ETag': '"120ea8a25e5d487bf68b5f7096440019"'},
@@ -172,20 +183,25 @@ class S3HandlerTestUpload(S3HandlerBaseTest):
         One of the uploads will fail to upload in this test as
         the second s3 destination's bucket does not exist.
         """
-        fail_s3_files = [self.bucket + '/text1.txt',
-                         self.bucket[:-1] + '/another_directory/text2.txt']
+        fail_s3_files = [
+            f'{self.bucket}/text1.txt',
+            f'{self.bucket[:-1]}/another_directory/text2.txt',
+        ]
         files = [self.loc_files[0], self.loc_files[1]]
-        tasks = []
-        for i in range(len(files)):
-            tasks.append(FileInfo(
+        tasks = [
+            FileInfo(
                 src=self.loc_files[i],
                 dest=fail_s3_files[i],
                 compare_key=None,
                 src_type='local',
                 dest_type='s3',
-                operation_name='upload', size=0,
+                operation_name='upload',
+                size=0,
                 last_update=None,
-                client=self.client))
+                client=self.client,
+            )
+            for i in range(len(files))
+        ]
         # Since there is only one parsed response. The process will fail
         # becasue it is expecting one more response.
         self.parsed_responses = [
@@ -201,13 +217,16 @@ class S3HandlerTestUpload(S3HandlerBaseTest):
         perform any tests past checking the parts are uploaded correctly.
         """
         files = [self.loc_files[0]]
-        tasks = []
-        for i in range(len(files)):
-            tasks.append(FileInfo(
+        tasks = [
+            FileInfo(
                 src=self.loc_files[i],
-                dest=self.s3_files[i], size=15,
+                dest=self.s3_files[i],
+                size=15,
                 operation_name='upload',
-                client=self.client))
+                client=self.client,
+            )
+            for i in range(len(files))
+        ]
         self.parsed_responses = [
             {'UploadId': 'foo'},
             {'ETag': '"120ea8a25e5d487bf68b5f7096440019"'},
@@ -241,13 +260,16 @@ class S3HandlerTestUpload(S3HandlerBaseTest):
         a nonexisting bucket, connection error, and md5 error.
         """
         files = [self.loc_files[0]]
-        tasks = []
-        for i in range(len(files)):
-            tasks.append(FileInfo(
+        tasks = [
+            FileInfo(
                 src=self.loc_files[i],
-                dest=self.s3_files[i], size=15,
+                dest=self.s3_files[i],
+                size=15,
                 operation_name='upload',
-                client=self.client))
+                client=self.client,
+            )
+            for i in range(len(files))
+        ]
         self.parsed_responses = [
             {'UploadId': 'foo'},
             {'ETag': '"120ea8a25e5d487bf68b5f7096440019"'},
@@ -260,13 +282,16 @@ class S3HandlerTestUpload(S3HandlerBaseTest):
 
     def test_multiupload_abort_in_s3_handler(self):
         files = [self.loc_files[0]]
-        tasks = []
-        for i in range(len(files)):
-            tasks.append(FileInfo(
+        tasks = [
+            FileInfo(
                 src=self.loc_files[i],
-                dest=self.s3_files[i], size=15,
+                dest=self.s3_files[i],
+                size=15,
                 operation_name='upload',
-                client=self.client))
+                client=self.client,
+            )
+            for i in range(len(files))
+        ]
         self.parsed_responses = [
             {'UploadId': 'foo'},
             {'ETag': '"120ea8a25e5d487bf68b5f7096440019"'},
@@ -300,19 +325,26 @@ class S3HandlerTestMvLocalS3(S3HandlerBaseTest):
                                         max_concurrent_requests=1))
         self.bucket = 'mybucket'
         self.loc_files = make_loc_files(self.file_creator)
-        self.s3_files = [self.bucket + '/text1.txt',
-                         self.bucket + '/another_directory/text2.txt']
+        self.s3_files = [
+            f'{self.bucket}/text1.txt',
+            f'{self.bucket}/another_directory/text2.txt',
+        ]
 
     def test_move(self):
         # Create file info objects to perform move.
         files = [self.loc_files[0], self.loc_files[1]]
-        tasks = []
-        for i in range(len(files)):
-            tasks.append(FileInfo(
-                src=self.loc_files[i], src_type='local',
-                dest=self.s3_files[i], dest_type='s3',
-                operation_name='move', size=0,
-                client=self.client))
+        tasks = [
+            FileInfo(
+                src=self.loc_files[i],
+                src_type='local',
+                dest=self.s3_files[i],
+                dest_type='s3',
+                operation_name='move',
+                size=0,
+                client=self.client,
+            )
+            for i in range(len(files))
+        ]
         self.parsed_responses = [
             {'ETag': '"120ea8a25e5d487bf68b5f7096440019"'},
             {'ETag': '"120ea8a25e5d487bf68b5f7096440019"'}
@@ -347,54 +379,85 @@ class S3HandlerTestMvS3S3(S3HandlerBaseTest):
                                         max_concurrent_requests=1))
         self.bucket = 'mybucket'
         self.bucket2 = 'mybucket2'
-        self.s3_files = [self.bucket + '/text1.txt',
-                         self.bucket + '/another_directory/text2.txt']
-        self.s3_files2 = [self.bucket2 + '/text1.txt',
-                          self.bucket2 + '/another_directory/text2.txt']
+        self.s3_files = [
+            f'{self.bucket}/text1.txt',
+            f'{self.bucket}/another_directory/text2.txt',
+        ]
+        self.s3_files2 = [
+            f'{self.bucket2}/text1.txt',
+            f'{self.bucket2}/another_directory/text2.txt',
+        ]
 
     def test_move(self):
-        # Create file info objects to perform move.
-        tasks = []
-        for i in range(len(self.s3_files)):
-            tasks.append(FileInfo(
-                src=self.s3_files[i], src_type='s3',
-                dest=self.s3_files2[i], dest_type='s3',
-                operation_name='move', size=0,
-                client=self.client, source_client=self.source_client))
+        tasks = [
+            FileInfo(
+                src=self.s3_files[i],
+                src_type='s3',
+                dest=self.s3_files2[i],
+                dest_type='s3',
+                operation_name='move',
+                size=0,
+                client=self.client,
+                source_client=self.source_client,
+            )
+            for i in range(len(self.s3_files))
+        ]
         ref_calls = [
-            ('CopyObject',
-             {'Bucket': self.bucket2, 'Key': 'text1.txt',
-              'CopySource': self.bucket + '/text1.txt', 'ACL': 'private',
-              'ContentType': 'text/plain'}),
+            (
+                'CopyObject',
+                {
+                    'Bucket': self.bucket2,
+                    'Key': 'text1.txt',
+                    'CopySource': f'{self.bucket}/text1.txt',
+                    'ACL': 'private',
+                    'ContentType': 'text/plain',
+                },
+            ),
             ('DeleteObject', {'Bucket': self.bucket, 'Key': 'text1.txt'}),
-            ('CopyObject',
-             {'Bucket': self.bucket2, 'Key': 'another_directory/text2.txt',
-              'CopySource': self.bucket + '/another_directory/text2.txt',
-              'ACL': 'private', 'ContentType': 'text/plain'}),
-            ('DeleteObject',
-             {'Bucket': self.bucket, 'Key': 'another_directory/text2.txt'}),
+            (
+                'CopyObject',
+                {
+                    'Bucket': self.bucket2,
+                    'Key': 'another_directory/text2.txt',
+                    'CopySource': f'{self.bucket}/another_directory/text2.txt',
+                    'ACL': 'private',
+                    'ContentType': 'text/plain',
+                },
+            ),
+            (
+                'DeleteObject',
+                {'Bucket': self.bucket, 'Key': 'another_directory/text2.txt'},
+            ),
         ]
         # Perform the move.
         self.assert_operations_for_s3_handler(self.s3_handler, tasks,
                                               ref_calls)
 
     def test_move_unicode(self):
-        tasks = [FileInfo(
-            src=self.bucket2 + '/' + u'\u2713',
-            src_type='s3',
-            dest=self.bucket + '/' + u'\u2713',
-            dest_type='s3', operation_name='move',
-            size=0,
-            client=self.client,
-            source_client=self.source_client
-        )]
+        tasks = [
+            FileInfo(
+                src=f'{self.bucket2}/' + u'\u2713',
+                src_type='s3',
+                dest=f'{self.bucket}/' + u'\u2713',
+                dest_type='s3',
+                operation_name='move',
+                size=0,
+                client=self.client,
+                source_client=self.source_client,
+            )
+        ]
 
         ref_calls = [
-            ('CopyObject',
-             {'Bucket': self.bucket, 'Key': u'\u2713',
-              'CopySource': self.bucket2 + '/' + u'\u2713', 'ACL': 'private'}),
-            ('DeleteObject',
-             {'Bucket': self.bucket2, 'Key': u'\u2713'})
+            (
+                'CopyObject',
+                {
+                    'Bucket': self.bucket,
+                    'Key': u'\u2713',
+                    'CopySource': f'{self.bucket2}/' + u'\u2713',
+                    'ACL': 'private',
+                },
+            ),
+            ('DeleteObject', {'Bucket': self.bucket2, 'Key': u'\u2713'}),
         ]
         self.assert_operations_for_s3_handler(self.s3_handler, tasks,
                                               ref_calls)
@@ -417,25 +480,33 @@ class S3HandlerTestMvS3Local(S3HandlerBaseTest):
                 multipart_threshold=10, multipart_chunksize=5,
                 max_concurrent_requests=1))
         self.bucket = 'mybucket'
-        self.s3_files = [self.bucket + '/text1.txt',
-                         self.bucket + '/another_directory/text2.txt']
+        self.s3_files = [
+            f'{self.bucket}/text1.txt',
+            f'{self.bucket}/another_directory/text2.txt',
+        ]
         directory1 = self.file_creator.rootdir + os.sep + 'some_directory' \
-            + os.sep
-        filename1 = directory1 + "text1.txt"
-        directory2 = directory1 + 'another_directory' + os.sep
-        filename2 = directory2 + "text2.txt"
+                + os.sep
+        filename1 = f"{directory1}text1.txt"
+        directory2 = f'{directory1}another_directory{os.sep}'
+        filename2 = f"{directory2}text2.txt"
         self.loc_files = [filename1, filename2]
 
     def test_move(self):
-        # Create file info objects to perform move.
-        tasks = []
         time = datetime.datetime.now()
-        for i in range(len(self.s3_files)):
-            tasks.append(FileInfo(
-                src=self.s3_files[i], src_type='s3',
-                dest=self.loc_files[i], dest_type='local',
-                last_update=time, operation_name='move',
-                size=0, client=self.client, source_client=self.source_client))
+        tasks = [
+            FileInfo(
+                src=self.s3_files[i],
+                src_type='s3',
+                dest=self.loc_files[i],
+                dest_type='local',
+                last_update=time,
+                operation_name='move',
+                size=0,
+                client=self.client,
+                source_client=self.source_client,
+            )
+            for i in range(len(self.s3_files))
+        ]
         self.parsed_responses = [
             {'ETag': '"120ea8a25e5d487bf68b5f7096440019"',
              'Body': six.BytesIO(b'This is a test.')},
@@ -466,13 +537,20 @@ class S3HandlerTestMvS3Local(S3HandlerBaseTest):
             self.assertEqual(filename.read(), b'This is a test.')
 
     def test_move_multi(self):
-        tasks = []
         time = datetime.datetime.now()
-        tasks.append(FileInfo(
-            src=self.s3_files[0], src_type='s3',
-            dest=self.loc_files[0], dest_type='local',
-            last_update=time, operation_name='move',
-            size=15, client=self.client, source_client=self.source_client))
+        tasks = [
+            FileInfo(
+                src=self.s3_files[0],
+                src_type='s3',
+                dest=self.loc_files[0],
+                dest_type='local',
+                last_update=time,
+                operation_name='move',
+                size=15,
+                client=self.client,
+                source_client=self.source_client,
+            )
+        ]
         mock_stream = mock.Mock()
         mock_stream.read.side_effect = [
             b'This ', b'', b'is a ', b'', b'test.', b'',
@@ -527,19 +605,29 @@ class S3HandlerTestCpS3S3(S3HandlerBaseTest):
                 max_concurrent_requests=1))
         self.bucket = 'mybucket'
         self.bucket2 = 'mybucket2'
-        self.s3_files = [self.bucket + '/text1.txt',
-                         self.bucket + '/another_directory/text2.txt']
-        self.s3_files2 = [self.bucket2 + '/text1.txt',
-                          self.bucket2 + '/another_directory/text2.txt']
+        self.s3_files = [
+            f'{self.bucket}/text1.txt',
+            f'{self.bucket}/another_directory/text2.txt',
+        ]
+        self.s3_files2 = [
+            f'{self.bucket2}/text1.txt',
+            f'{self.bucket2}/another_directory/text2.txt',
+        ]
 
     def test_multi_copy(self):
         # Create file info objects to perform move.
-        tasks = []
-        tasks.append(FileInfo(src=self.s3_files[0], src_type='s3',
-                              dest=self.s3_files2[0], dest_type='s3',
-                              operation_name='copy', size=15,
-                              client=self.client,
-                              source_client=self.source_client))
+        tasks = [
+            FileInfo(
+                src=self.s3_files[0],
+                src_type='s3',
+                dest=self.s3_files2[0],
+                dest_type='s3',
+                operation_name='copy',
+                size=15,
+                client=self.client,
+                source_client=self.source_client,
+            )
+        ]
         self.parsed_responses = [
             {'UploadId': 'foo'},
             {'CopyPartResult': {'ETag': '"120ea8a25e5d487bf68b5f7096440019"'}},
@@ -549,32 +637,62 @@ class S3HandlerTestCpS3S3(S3HandlerBaseTest):
         ]
 
         ref_calls = [
-            ('CreateMultipartUpload',
-             {'Bucket': self.bucket2, 'Key': 'text1.txt',
-              'ContentType': 'text/plain'}),
-            ('UploadPartCopy',
-             {'Bucket': self.bucket2, 'Key': 'text1.txt',
-              'PartNumber': 1, 'UploadId': 'foo',
-              'CopySourceRange': 'bytes=0-4',
-              'CopySource': self.bucket + '/text1.txt'}),
-            ('UploadPartCopy',
-             {'Bucket': self.bucket2, 'Key': 'text1.txt',
-              'PartNumber': 2, 'UploadId': 'foo',
-              'CopySourceRange': 'bytes=5-9',
-              'CopySource': self.bucket + '/text1.txt'}),
-            ('UploadPartCopy',
-             {'Bucket': self.bucket2, 'Key': 'text1.txt',
-              'PartNumber': 3, 'UploadId': 'foo',
-              'CopySourceRange': 'bytes=10-14',
-              'CopySource': self.bucket + '/text1.txt'}),
-            ('CompleteMultipartUpload',
-             {'MultipartUpload': {'Parts': [{'PartNumber': 1,
-                                             'ETag': mock.ANY},
-                                            {'PartNumber': 2,
-                                             'ETag': mock.ANY},
-                                            {'PartNumber': 3,
-                                             'ETag': mock.ANY}]},
-              'Bucket': self.bucket2, 'UploadId': 'foo', 'Key': 'text1.txt'})
+            (
+                'CreateMultipartUpload',
+                {
+                    'Bucket': self.bucket2,
+                    'Key': 'text1.txt',
+                    'ContentType': 'text/plain',
+                },
+            ),
+            (
+                'UploadPartCopy',
+                {
+                    'Bucket': self.bucket2,
+                    'Key': 'text1.txt',
+                    'PartNumber': 1,
+                    'UploadId': 'foo',
+                    'CopySourceRange': 'bytes=0-4',
+                    'CopySource': f'{self.bucket}/text1.txt',
+                },
+            ),
+            (
+                'UploadPartCopy',
+                {
+                    'Bucket': self.bucket2,
+                    'Key': 'text1.txt',
+                    'PartNumber': 2,
+                    'UploadId': 'foo',
+                    'CopySourceRange': 'bytes=5-9',
+                    'CopySource': f'{self.bucket}/text1.txt',
+                },
+            ),
+            (
+                'UploadPartCopy',
+                {
+                    'Bucket': self.bucket2,
+                    'Key': 'text1.txt',
+                    'PartNumber': 3,
+                    'UploadId': 'foo',
+                    'CopySourceRange': 'bytes=10-14',
+                    'CopySource': f'{self.bucket}/text1.txt',
+                },
+            ),
+            (
+                'CompleteMultipartUpload',
+                {
+                    'MultipartUpload': {
+                        'Parts': [
+                            {'PartNumber': 1, 'ETag': mock.ANY},
+                            {'PartNumber': 2, 'ETag': mock.ANY},
+                            {'PartNumber': 3, 'ETag': mock.ANY},
+                        ]
+                    },
+                    'Bucket': self.bucket2,
+                    'UploadId': 'foo',
+                    'Key': 'text1.txt',
+                },
+            ),
         ]
 
         # Perform the copy.
@@ -582,15 +700,19 @@ class S3HandlerTestCpS3S3(S3HandlerBaseTest):
                                               ref_calls)
 
     def test_multi_copy_fail(self):
-        # Create file info objects to perform move.
-        tasks = []
-        for i in range(len(self.s3_files)):
-            tasks.append(FileInfo(src=self.s3_files[i], src_type='s3',
-                                  dest=self.s3_files2[i], dest_type='s3',
-                                  operation_name='copy', size=15,
-                                  client=self.client,
-                                  source_client=self.source_client))
-
+        tasks = [
+            FileInfo(
+                src=self.s3_files[i],
+                src_type='s3',
+                dest=self.s3_files2[i],
+                dest_type='s3',
+                operation_name='copy',
+                size=15,
+                client=self.client,
+                source_client=self.source_client,
+            )
+            for i in range(len(self.s3_files))
+        ]
         self.parsed_responses = [
             {'UploadId': 'foo'},
             {'CopyPartResult': {'ETag': '"120ea8a25e5d487bf68b5f7096440019"'}},
@@ -626,25 +748,32 @@ class S3HandlerTestDownload(S3HandlerBaseTest):
                                           multipart_chunksize=5,
                                           max_concurrent_requests=1))
         self.bucket = 'mybucket'
-        self.s3_files = [self.bucket + '/text1.txt',
-                         self.bucket + '/another_directory/text2.txt']
+        self.s3_files = [
+            f'{self.bucket}/text1.txt',
+            f'{self.bucket}/another_directory/text2.txt',
+        ]
         directory1 = self.file_creator.rootdir + os.sep + 'some_directory' \
-            + os.sep
-        filename1 = directory1 + "text1.txt"
-        directory2 = directory1 + 'another_directory' + os.sep
-        filename2 = directory2 + "text2.txt"
+                + os.sep
+        filename1 = f"{directory1}text1.txt"
+        directory2 = f'{directory1}another_directory{os.sep}'
+        filename2 = f"{directory2}text2.txt"
         self.loc_files = [filename1, filename2]
 
     def test_download(self):
-        # Create file info objects to perform download.
-        tasks = []
         time = datetime.datetime.now()
-        for i in range(len(self.s3_files)):
-            tasks.append(FileInfo(
-                src=self.s3_files[i], src_type='s3',
-                dest=self.loc_files[i], dest_type='local',
-                last_update=time, operation_name='download',
-                size=0, client=self.client))
+        tasks = [
+            FileInfo(
+                src=self.s3_files[i],
+                src_type='s3',
+                dest=self.loc_files[i],
+                dest_type='local',
+                last_update=time,
+                operation_name='download',
+                size=0,
+                client=self.client,
+            )
+            for i in range(len(self.s3_files))
+        ]
         self.parsed_responses = [
             {'ETag': '"120ea8a25e5d487bf68b5f7096440019"',
              'Body': six.BytesIO(b'This is a test.')},
@@ -669,14 +798,20 @@ class S3HandlerTestDownload(S3HandlerBaseTest):
             self.assertEqual(filename.read(), b'This is a test.')
 
     def test_multi_download(self):
-        tasks = []
         time = datetime.datetime.now()
-        for i in range(len(self.s3_files)):
-            tasks.append(FileInfo(
-                src=self.s3_files[i], src_type='s3',
-                dest=self.loc_files[i], dest_type='local',
-                last_update=time, operation_name='download',
-                size=15, client=self.client))
+        tasks = [
+            FileInfo(
+                src=self.s3_files[i],
+                src_type='s3',
+                dest=self.loc_files[i],
+                dest_type='local',
+                last_update=time,
+                operation_name='download',
+                size=15,
+                client=self.client,
+            )
+            for i in range(len(self.s3_files))
+        ]
         mock_stream = mock.Mock()
         mock_stream.read.side_effect = [
             b'This ', b'', b'is a ', b'', b'test.', b'',
@@ -735,16 +870,24 @@ class S3HandlerTestDownload(S3HandlerBaseTest):
         being performed on a nonexistant bucket.  The existing file
         should be downloaded properly but the other will not.
         """
-        tasks = []
-        wrong_s3_files = [self.bucket + '/text1.txt',
-                          self.bucket[:-1] + '/another_directory/text2.txt']
+        wrong_s3_files = [
+            f'{self.bucket}/text1.txt',
+            f'{self.bucket[:-1]}/another_directory/text2.txt',
+        ]
         time = datetime.datetime.now()
-        for i in range(len(self.s3_files)):
-            tasks.append(FileInfo(
-                src=wrong_s3_files[i], src_type='s3',
-                dest=self.loc_files[i], dest_type='local',
-                last_update=time, operation_name='download',
-                size=15, client=self.client))
+        tasks = [
+            FileInfo(
+                src=wrong_s3_files[i],
+                src_type='s3',
+                dest=self.loc_files[i],
+                dest_type='local',
+                last_update=time,
+                operation_name='download',
+                size=15,
+                client=self.client,
+            )
+            for i in range(len(self.s3_files))
+        ]
         mock_stream = mock.Mock()
         mock_stream.read.side_effect = [
             b'This ', b'', b'is a ', b'', b'test.', b''

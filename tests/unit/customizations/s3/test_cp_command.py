@@ -32,7 +32,7 @@ class TestCPCommand(BaseAWSCommandParamsTest):
 
     def test_operations_used_in_upload(self):
         full_path = self.files.create_file('foo.txt', 'mycontent')
-        cmdline = '%s %s s3://bucket/key.txt' % (self.prefix, full_path)
+        cmdline = f'{self.prefix} {full_path} s3://bucket/key.txt'
         self.parsed_responses = [{'ETag': '"c8afdb36c52cf4727836669019e69222"'}]
         self.run_cmd(cmdline, expected_rc=0)
         # The only operation we should have called is PutObject.
@@ -41,7 +41,7 @@ class TestCPCommand(BaseAWSCommandParamsTest):
 
     def test_key_name_added_when_only_bucket_provided(self):
         full_path = self.files.create_file('foo.txt', 'mycontent')
-        cmdline = '%s %s s3://bucket/' % (self.prefix, full_path)
+        cmdline = f'{self.prefix} {full_path} s3://bucket/'
         self.parsed_responses = [{'ETag': '"c8afdb36c52cf4727836669019e69222"'}]
         self.run_cmd(cmdline, expected_rc=0)
         # The only operation we should have called is PutObject.
@@ -54,7 +54,7 @@ class TestCPCommand(BaseAWSCommandParamsTest):
         full_path = self.files.create_file('foo.txt', 'mycontent')
         # Here we're saying s3://bucket instead of s3://bucket/
         # This should still work the same as if we added the trailing slash.
-        cmdline = '%s %s s3://bucket' % (self.prefix, full_path)
+        cmdline = f'{self.prefix} {full_path} s3://bucket'
         self.parsed_responses = [{'ETag': '"c8afdb36c52cf4727836669019e69222"'}]
         self.run_cmd(cmdline, expected_rc=0)
         # The only operation we should have called is PutObject.
@@ -65,11 +65,9 @@ class TestCPCommand(BaseAWSCommandParamsTest):
 
     def test_upload_grants(self):
         full_path = self.files.create_file('foo.txt', 'mycontent')
-        cmdline = ('%s %s s3://bucket/key.txt --grants read=id=foo '
-                   'full=id=bar readacl=id=biz writeacl=id=baz' %
-                   (self.prefix, full_path))
         self.parsed_responses = \
-            [{'ETag': '"c8afdb36c52cf4727836669019e69222"'}]
+                [{'ETag': '"c8afdb36c52cf4727836669019e69222"'}]
+        cmdline = f'{self.prefix} {full_path} s3://bucket/key.txt --grants read=id=foo full=id=bar readacl=id=biz writeacl=id=baz'
         self.run_cmd(cmdline, expected_rc=0)
         # The only operation we should have called is PutObject.
         self.assertEqual(len(self.operations_called), 1,
@@ -85,10 +83,9 @@ class TestCPCommand(BaseAWSCommandParamsTest):
 
     def test_upload_expires(self):
         full_path = self.files.create_file('foo.txt', 'mycontent')
-        cmdline = ('%s %s s3://bucket/key.txt --expires 90' %
-                   (self.prefix, full_path))
+        cmdline = f'{self.prefix} {full_path} s3://bucket/key.txt --expires 90'
         self.parsed_responses = \
-            [{'ETag': '"c8afdb36c52cf4727836669019e69222"'}]
+                [{'ETag': '"c8afdb36c52cf4727836669019e69222"'}]
         self.run_cmd(cmdline, expected_rc=0)
         # The only operation we should have called is PutObject.
         self.assertEqual(len(self.operations_called), 1,
@@ -103,8 +100,7 @@ class TestCPCommand(BaseAWSCommandParamsTest):
             {"ContentLength": "100", "LastModified": "00:00:00Z"},
             {'ETag': '"foo-1"', 'Body': six.BytesIO(b'foo')},
         ]
-        cmdline = '%s s3://bucket/key.txt %s' % (self.prefix,
-                                                 self.files.rootdir)
+        cmdline = f'{self.prefix} s3://bucket/key.txt {self.files.rootdir}'
         self.run_cmd(cmdline, expected_rc=0)
         # The only operations we should have called are HeadObject/GetObject.
         self.assertEqual(len(self.operations_called), 2, self.operations_called)
@@ -115,8 +111,7 @@ class TestCPCommand(BaseAWSCommandParamsTest):
         self.parsed_responses = [
             {'ETag': '"foo-1"', 'Contents': [], 'CommonPrefixes': []},
         ]
-        cmdline = '%s s3://bucket/key.txt %s --recursive' % (
-            self.prefix, self.files.rootdir)
+        cmdline = f'{self.prefix} s3://bucket/key.txt {self.files.rootdir} --recursive'
         self.run_cmd(cmdline, expected_rc=0)
         # We called ListObjects but had no objects to download, so
         # we only have a single ListObjects operation being called.
@@ -125,8 +120,7 @@ class TestCPCommand(BaseAWSCommandParamsTest):
 
     def test_website_redirect_ignore_paramfile(self):
         full_path = self.files.create_file('foo.txt', 'mycontent')
-        cmdline = '%s %s s3://bucket/key.txt --website-redirect %s' % \
-            (self.prefix, full_path, 'http://someserver')
+        cmdline = f'{self.prefix} {full_path} s3://bucket/key.txt --website-redirect http://someserver'
         self.parsed_responses = [{'ETag': '"c8afdb36c52cf4727836669019e69222"'}]
         self.run_cmd(cmdline, expected_rc=0)
         # Make sure that the specified web address is used as opposed to the
@@ -153,10 +147,9 @@ class TestCPCommand(BaseAWSCommandParamsTest):
 
     def test_no_metadata_directive_for_non_copy(self):
         full_path = self.files.create_file('foo.txt', 'mycontent')
-        cmdline = '%s %s s3://bucket --metadata-directive REPLACE' % \
-            (self.prefix, full_path)
+        cmdline = f'{self.prefix} {full_path} s3://bucket --metadata-directive REPLACE'
         self.parsed_responses = \
-            [{'ETag': '"c8afdb36c52cf4727836669019e69222"'}]
+                [{'ETag': '"c8afdb36c52cf4727836669019e69222"'}]
         self.run_cmd(cmdline, expected_rc=0)
         self.assertEqual(len(self.operations_called), 1,
                          self.operations_called)

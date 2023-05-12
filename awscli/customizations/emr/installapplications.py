@@ -50,15 +50,14 @@ class InstallApplications(BasicCommand):
         for app_config in parsed_applications:
             app_name = app_config['Name'].upper()
 
-            if app_name in constants.APPLICATIONS:
-                if app_name not in self.supported_apps:
-                    raise ValueError(
-                        "aws: error: " + app_config['Name'] + " cannot be"
-                        " installed on a running cluster. 'Name' should be one"
-                        " of the following: " +
-                        ', '.join(self.supported_apps))
-            else:
+            if app_name not in constants.APPLICATIONS:
                 raise ValueError(
                     "aws: error: Unknown application: " + app_config['Name'] +
                     ". 'Name' should be one of the following: " +
                     ', '.join(constants.APPLICATIONS))
+            if app_name not in self.supported_apps:
+                raise ValueError(
+                    "aws: error: " + app_config['Name'] + " cannot be"
+                    " installed on a running cluster. 'Name' should be one"
+                    " of the following: " +
+                    ', '.join(self.supported_apps))

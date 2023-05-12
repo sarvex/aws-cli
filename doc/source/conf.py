@@ -20,15 +20,6 @@ sys.path.insert(0, os.path.abspath('.'))
 
 import bootstrapdocs
 
-# -- General configuration -----------------------------------------------------
-
-# If your documentation needs a minimal Sphinx version, state it here.
-#needs_sphinx = '1.0'
-
-# Add any Sphinx extension module names here, as strings. They can be extensions
-# coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = []
-
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
@@ -179,9 +170,7 @@ p = os.path.abspath('.')
 p = os.path.join(p, 'guzzle_sphinx_theme')
 html_theme_path = [p]
 html_theme = 'guzzle_sphinx_theme'
-# Register the theme as an extension to generate a sitemap.xml
-extensions.append("guzzle_sphinx_theme")
-
+extensions = ["guzzle_sphinx_theme"]
 html_theme_options = {
     # Set the name of the project to appear in the nav menu
     "project_nav_name": "AWS CLI",

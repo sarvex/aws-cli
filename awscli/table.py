@@ -26,8 +26,9 @@ def determine_terminal_width(default_width=80):
     except ImportError:
         return default_width
     try:
-        height, width = struct.unpack('hhhh', ioctl(sys.stdout,
-                                                    TIOCGWINSZ, '\000' * 8))[0:2]
+        height, width = struct.unpack(
+            'hhhh', ioctl(sys.stdout, TIOCGWINSZ, '\000' * 8)
+        )[:2]
     except Exception:
         return default_width
     else:
@@ -52,15 +53,12 @@ def center_text(text, length=80, left_edge='|', right_edge='|',
     # postcondition: len(returned_text) == length
     if text_length is None:
         text_length = len(text)
-    output = []
     char_start = (length // 2) - (text_length // 2) - 1
-    output.append(left_edge + ' ' * char_start + text)
+    output = [left_edge + ' ' * char_start + text]
     length_so_far = len(left_edge) + char_start + text_length
     right_side_spaces = length - len(right_edge) - length_so_far
-    output.append(' ' * right_side_spaces)
-    output.append(right_edge)
-    final = ''.join(output)
-    return final
+    output.extend((' ' * right_side_spaces, right_edge))
+    return ''.join(output)
 
 
 def align_left(text, length, left_edge='|', right_edge='|', text_length=None,
@@ -71,20 +69,14 @@ def align_left(text, length, left_edge='|', right_edge='|', text_length=None,
         text_length = len(text)
     computed_length = (
         text_length + left_padding + len(left_edge) + len(right_edge))
-    if length - computed_length >= 0:
-        padding = left_padding
-    else:
-        padding = 0
-    output = []
-    length_so_far = 0
-    output.append(left_edge)
-    length_so_far += len(left_edge)
+    padding = left_padding if length - computed_length >= 0 else 0
+    output = [left_edge]
+    length_so_far = 0 + len(left_edge)
     output.append(' ' * padding)
     length_so_far += padding
     output.append(text)
     length_so_far += text_length
-    output.append(' ' * (length - length_so_far - len(right_edge)))
-    output.append(right_edge)
+    output.extend((' ' * (length - length_so_far - len(right_edge)), right_edge))
     return ''.join(output)
 
 
@@ -182,10 +174,7 @@ class MultiTable(object):
             self._sections = []
         if styler is None:
             # Move out to factory.
-            if is_a_tty():
-                self._styler = ColorizedStyler()
-            else:
-                self._styler = Styler()
+            self._styler = ColorizedStyler() if is_a_tty() else Styler()
         else:
             self._styler = styler
         self._rendering_index = 0
@@ -210,8 +199,7 @@ class MultiTable(object):
 
     def render(self, stream):
         max_width = self._calculate_max_width()
-        should_convert_table = self._determine_conversion_needed(max_width)
-        if should_convert_table:
+        if should_convert_table := self._determine_conversion_needed(max_width):
             convert_to_vertical_table(self._sections)
             max_width = self._calculate_max_width()
         stream.write('-' * max_width + '\n')
@@ -225,10 +213,12 @@ class MultiTable(object):
             return self._auto_reformat
 
     def _calculate_max_width(self):
-        max_width = max(s.total_width(padding=4, with_border=True,
-                                      outer_padding=s.indent_level)
-                        for s in self._sections)
-        return max_width
+        return max(
+            s.total_width(
+                padding=4, with_border=True, outer_padding=s.indent_level
+            )
+            for s in self._sections
+        )
 
     def _render_section(self, section, max_width, stream):
         stream = IndentedStream(stream, section.indent_level,
@@ -248,7 +238,7 @@ class MultiTable(object):
             stream.write(center_text(title, max_width, '|', '|',
                                      len(section.title)) + '\n')
             if not section.headers and not section.rows:
-                stream.write('+%s+' % ('-' * (max_width - 2)) + '\n')
+                stream.write(f"+{'-' * (max_width - 2)}+" + '\n')
 
     def _render_column_titles(self, section, max_width, stream):
         if not section.headers:
@@ -284,10 +274,10 @@ class MultiTable(object):
         first = True
         for width in widths:
             if first:
-                parts.append('+%s+' % ('-' * (width - 2)))
+                parts.append(f"+{'-' * (width - 2)}+")
                 first = False
             else:
-                parts.append('%s+' % ('-' * (width - 1)))
+                parts.append(f"{'-' * (width - 1)}+")
         parts.append('\n')
         stream.write(''.join(parts))
 
@@ -331,8 +321,7 @@ class Section(object):
         self._max_widths = []
 
     def __repr__(self):
-        return ("Section(title=%s, headers=%s, indent_level=%s, num_rows=%s)" %
-                (self.title, self.headers, self.indent_level, len(self.rows)))
+        return f"Section(title={self.title}, headers={self.headers}, indent_level={self.indent_level}, num_rows={len(self.rows)})"
 
     def calculate_column_widths(self, padding=0, max_width=None):
         # postcondition: sum(widths) == max_width
@@ -341,34 +330,31 @@ class Section(object):
             return unscaled_widths
         if not unscaled_widths:
             return unscaled_widths
-        else:
-            # Compute scale factor for max_width.
-            scale_factor = max_width / float(sum(unscaled_widths))
-            scaled = [int(round(scale_factor * w)) for w in unscaled_widths]
-            # Once we've scaled the columns, we may be slightly over/under
-            # the amount we need so we have to adjust the columns.
-            off_by = sum(scaled) - max_width
-            while off_by != 0:
-                iter_order = range(len(scaled))
-                if off_by < 0:
-                    iter_order = reversed(iter_order)
-                for i in iter_order:
-                    if off_by > 0:
-                        scaled[i] -= 1
-                        off_by -= 1
-                    else:
-                        scaled[i] += 1
-                        off_by += 1
-                    if off_by == 0:
-                        break
-            return scaled
+        # Compute scale factor for max_width.
+        scale_factor = max_width / float(sum(unscaled_widths))
+        scaled = [int(round(scale_factor * w)) for w in unscaled_widths]
+        # Once we've scaled the columns, we may be slightly over/under
+        # the amount we need so we have to adjust the columns.
+        off_by = sum(scaled) - max_width
+        while off_by != 0:
+            iter_order = range(len(scaled))
+            if off_by < 0:
+                iter_order = reversed(iter_order)
+            for i in iter_order:
+                if off_by > 0:
+                    scaled[i] -= 1
+                    off_by -= 1
+                else:
+                    scaled[i] += 1
+                    off_by += 1
+                if off_by == 0:
+                    break
+        return scaled
 
     def total_width(self, padding=0, with_border=False, outer_padding=0):
-        total = 0
         # One char on each side == 2 chars total to the width.
         border_padding = 2
-        for w in self.calculate_column_widths():
-            total += w + padding
+        total = sum(w + padding for w in self.calculate_column_widths())
         if with_border:
             total += border_padding
         total += outer_padding + outer_padding

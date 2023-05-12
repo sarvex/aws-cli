@@ -54,8 +54,7 @@ def create_clidriver():
     _set_user_agent_for_session(session)
     load_plugins(session.full_config.get('plugins', {}),
                  event_hooks=emitter)
-    driver = CLIDriver(session=session)
-    return driver
+    return CLIDriver(session=session)
 
 
 def _set_user_agent_for_session(session):
@@ -153,12 +152,13 @@ class CLIDriver(object):
         command_table = self._get_command_table()
         command_table['help'] = self.create_help_command()
         cli_data = self._get_cli_data()
-        parser = MainArgParser(
-            command_table, self.session.user_agent(),
+        return MainArgParser(
+            command_table,
+            self.session.user_agent(),
             cli_data.get('description', None),
             cli_data.get('synopsis', None),
-            self._get_argument_table())
-        return parser
+            self._get_argument_table(),
+        )
 
     def main(self, args=None):
         """
@@ -318,11 +318,7 @@ class ServiceCommand(CLICommand):
         self._name = cli_name
         self.session = session
         self._command_table = None
-        if service_name is None:
-            # Then default to using the cli name.
-            self._service_name = cli_name
-        else:
-            self._service_name = service_name
+        self._service_name = cli_name if service_name is None else service_name
         self._lineage = [self]
         self._service_model = None
 
@@ -379,10 +375,12 @@ class ServiceCommand(CLICommand):
                 operation_model=operation_model,
                 operation_caller=CLIOperationCaller(self.session),
             )
-        self.session.emit('building-command-table.%s' % self._name,
-                          command_table=command_table,
-                          session=self.session,
-                          command_object=self)
+        self.session.emit(
+            f'building-command-table.{self._name}',
+            command_table=command_table,
+            session=self.session,
+            command_object=self,
+        )
         self._add_lineage(command_table)
         return command_table
 
@@ -484,8 +482,7 @@ class ServiceOperation(object):
     def __call__(self, args, parsed_globals):
         # Once we know we're trying to call a particular operation
         # of a service we can go ahead and load the parameters.
-        event = 'before-building-argument-table-parser.%s.%s' % \
-            (self._parent_name, self._name)
+        event = f'before-building-argument-table-parser.{self._parent_name}.{self._name}'
         self._emit(event, argument_table=self.arg_table, args=args)
         operation_parser = self._create_operation_parser(self.arg_table)
         self._add_help(operation_parser)
@@ -496,42 +493,34 @@ class ServiceOperation(object):
         elif parsed_args.help:
             remaining.append(parsed_args.help)
         if remaining:
-            raise UnknownArgumentError(
-                "Unknown options: %s" % ', '.join(remaining))
-        event = 'operation-args-parsed.%s.%s' % (self._parent_name,
-                                                 self._name)
+            raise UnknownArgumentError(f"Unknown options: {', '.join(remaining)}")
+        event = f'operation-args-parsed.{self._parent_name}.{self._name}'
         self._emit(event, parsed_args=parsed_args,
                    parsed_globals=parsed_globals)
         call_parameters = self._build_call_parameters(parsed_args,
                                                       self.arg_table)
-        event = 'calling-command.%s.%s' % (self._parent_name,
-                                           self._name)
+        event = f'calling-command.{self._parent_name}.{self._name}'
         override = self._emit_first_non_none_response(
             event,
             call_parameters=call_parameters,
             parsed_args=parsed_args,
             parsed_globals=parsed_globals
         )
-        # There are two possible values for override. It can be some type
-        # of exception that will be raised if detected or it can represent
-        # the desired return code. Note that a return code of 0 represents
-        # a success.
-        if override is not None:
-            if isinstance(override, Exception):
-                # If the override value provided back is an exception then
-                # raise the exception
-                raise override
-            else:
-                # This is the value usually returned by the ``invoke()``
-                # method of the operation caller. It represents the return
-                # code of the operation.
-                return override
-        else:
+        if override is None:
             # No override value was supplied.
             return self._operation_caller.invoke(
                 self._operation_model.service_model.service_name,
                 self._operation_model.name,
                 call_parameters, parsed_globals)
+        if isinstance(override, Exception):
+            # If the override value provided back is an exception then
+            # raise the exception
+            raise override
+        else:
+            # This is the value usually returned by the ``invoke()``
+            # method of the operation caller. It represents the return
+            # code of the operation.
+            return override
 
     def create_help_command(self):
         return OperationHelpCommand(
@@ -594,12 +583,13 @@ class ServiceOperation(object):
                 event_emitter=event_emitter)
             arg_object.add_to_arg_table(argument_table)
         LOG.debug(argument_table)
-        self._emit('building-argument-table.%s.%s' % (self._parent_name,
-                                                      self._name),
-                   operation_model=self._operation_model,
-                   session=self._session,
-                   command=self,
-                   argument_table=argument_table)
+        self._emit(
+            f'building-argument-table.{self._parent_name}.{self._name}',
+            operation_model=self._operation_model,
+            session=self._session,
+            command=self,
+            argument_table=argument_table,
+        )
         return argument_table
 
     def _emit(self, name, **kwargs):
@@ -610,8 +600,7 @@ class ServiceOperation(object):
             name, **kwargs)
 
     def _create_operation_parser(self, arg_table):
-        parser = ArgTableArgParser(arg_table)
-        return parser
+        return ArgTableArgParser(arg_table)
 
 
 class CLIOperationCaller(object):

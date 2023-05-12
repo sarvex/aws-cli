@@ -37,7 +37,7 @@ class CLIDocumentEventHandler(object):
         return arg_groups
 
     def build_translation_map(self):
-        return dict()
+        return {}
 
     def _map_handlers(self, session, event_class, mapfn):
         for event in DOC_EVENTS:
@@ -86,7 +86,7 @@ class CLIDocumentEventHandler(object):
                 doc.write(' . ')
                 full_cmd_list.append(cmd)
                 full_cmd_name = ' '.join(full_cmd_list)
-                doc.write(':ref:`%s <cli:%s>`' % (cmd, full_cmd_name))
+                doc.write(f':ref:`{cmd} <cli:{full_cmd_name}>`')
             doc.write(' ]')
 
     def doc_title(self, help_command, **kwargs):
@@ -94,8 +94,8 @@ class CLIDocumentEventHandler(object):
         doc.style.new_paragraph()
         reference = help_command.event_class.replace('.', ' ')
         if reference != 'aws':
-            reference = 'aws ' + reference
-        doc.writeln('.. _cli:%s:' % reference)
+            reference = f'aws {reference}'
+        doc.writeln(f'.. _cli:{reference}:')
         doc.style.h1(help_command.name)
 
     def doc_description(self, help_command, **kwargs):
@@ -109,7 +109,7 @@ class CLIDocumentEventHandler(object):
         doc = help_command.doc
         doc.style.h2('Synopsis')
         doc.style.start_codeblock()
-        doc.writeln('%s' % help_command.name)
+        doc.writeln(f'{help_command.name}')
 
     def doc_synopsis_option(self, arg_name, help_command, **kwargs):
         doc = help_command.doc
@@ -123,10 +123,10 @@ class CLIDocumentEventHandler(object):
                  self._arg_groups[argument.group_name]])
             self._documented_arg_groups.append(argument.group_name)
         else:
-            option_str = '%s <value>' % argument.cli_name
+            option_str = f'{argument.cli_name} <value>'
         if not argument.required:
-            option_str = '[%s]' % option_str
-        doc.writeln('%s' % option_str)
+            option_str = f'[{option_str}]'
+        doc.writeln(f'{option_str}')
 
     def doc_synopsis_end(self, help_command, **kwargs):
         doc = help_command.doc
@@ -150,11 +150,14 @@ class CLIDocumentEventHandler(object):
                 # This arg is already documented so we can move on.
                 return
             name = ' | '.join(
-                ['``%s``' % a.cli_name for a in
-                 self._arg_groups[argument.group_name]])
+                [
+                    f'``{a.cli_name}``'
+                    for a in self._arg_groups[argument.group_name]
+                ]
+            )
             self._documented_arg_groups.append(argument.group_name)
         else:
-            name = '``%s``' % argument.cli_name
+            name = f'``{argument.cli_name}``'
         doc.write('%s (%s)\n' % (name, argument.cli_type_name))
         doc.style.indent()
         doc.include_doc_string(argument.documentation)
@@ -187,8 +190,7 @@ class ProviderDocumentEventHandler(CLIDocumentEventHandler):
     def doc_option(self, arg_name, help_command, **kwargs):
         doc = help_command.doc
         argument = help_command.arg_table[arg_name]
-        doc.writeln('``%s`` (%s)' % (argument.cli_name,
-                                     argument.cli_type_name))
+        doc.writeln(f'``{argument.cli_name}`` ({argument.cli_type_name})')
         doc.include_doc_string(argument.documentation)
         if argument.choices:
             doc.style.start_ul()
@@ -203,18 +205,18 @@ class ProviderDocumentEventHandler(CLIDocumentEventHandler):
 
     def doc_subitem(self, command_name, help_command, **kwargs):
         doc = help_command.doc
-        file_name = '%s/index' % command_name
+        file_name = f'{command_name}/index'
         doc.style.tocitem(command_name, file_name=file_name)
 
 
 class ServiceDocumentEventHandler(CLIDocumentEventHandler):
 
     def build_translation_map(self):
-        d = {}
         service_model = self.help_command.obj
-        for operation_name in service_model.operation_names:
-            d[operation_name] = xform_name(operation_name, '-')
-        return d
+        return {
+            operation_name: xform_name(operation_name, '-')
+            for operation_name in service_model.operation_names
+        }
 
     # A service document has no synopsis.
     def doc_synopsis_start(self, help_command, **kwargs):
@@ -258,8 +260,8 @@ class ServiceDocumentEventHandler(CLIDocumentEventHandler):
         # If the subcommand table has commands in it,
         # direct the subitem to the command's index because
         # it has more subcommands to be documented.
-        if (len(subcommand_table) > 0):
-            file_name = '%s/index' % command_name
+        if subcommand_table:
+            file_name = f'{command_name}/index'
             doc.style.tocitem(command_name, file_name=file_name)
         else:
             doc.style.tocitem(command_name)
@@ -269,10 +271,11 @@ class OperationDocumentEventHandler(CLIDocumentEventHandler):
 
     def build_translation_map(self):
         operation_model = self.help_command.obj
-        d = {}
-        for cli_name, cli_argument in self.help_command.arg_table.items():
-            if cli_argument.argument_model is not None:
-                d[cli_argument.argument_model.name] = cli_name
+        d = {
+            cli_argument.argument_model.name: cli_name
+            for cli_name, cli_argument in self.help_command.arg_table.items()
+            if cli_argument.argument_model is not None
+        }
         for operation_name in operation_model.service_model.operation_names:
             d[operation_name] = xform_name(operation_name, '-')
         return d
@@ -286,25 +289,22 @@ class OperationDocumentEventHandler(CLIDocumentEventHandler):
     def _json_example_value_name(self, argument_model, include_enum_values=True):
         # If include_enum_values is True, then the valid enum values
         # are included as the sample JSON value.
-        if argument_model.type_name == 'string':
-            if 'enum' in argument_model.metadata and include_enum_values:
-                choices = argument_model.metadata['enum']
-                return '|'.join(['"%s"' % c for c in choices])
-            else:
-                return '"string"'
-        elif argument_model.type_name == 'boolean':
+        if argument_model.type_name == 'boolean':
             return 'true|false'
+        elif argument_model.type_name == 'string':
+            return (
+                '|'.join([f'"{c}"' for c in argument_model.metadata['enum']])
+                if 'enum' in argument_model.metadata and include_enum_values
+                else '"string"'
+            )
         else:
-            return '%s' % argument_model.type_name
+            return f'{argument_model.type_name}'
 
     def _json_example(self, doc, argument_model, stack):
-        if argument_model.name in stack:
-            # Document the recursion once, otherwise just
-            # note the fact that it's recursive and return.
-            if stack.count(argument_model.name) > 1:
-                if argument_model.type_name == 'structure':
-                    doc.write('{ ... recursive ... }')
-                return
+        if argument_model.name in stack and stack.count(argument_model.name) > 1:
+            if argument_model.type_name == 'structure':
+                doc.write('{ ... recursive ... }')
+            return
         stack.append(argument_model.name)
         try:
             self._do_json_example(doc, argument_model, stack)
@@ -315,7 +315,7 @@ class OperationDocumentEventHandler(CLIDocumentEventHandler):
         if argument_model.type_name == 'list':
             doc.write('[')
             if argument_model.member.type_name in SCALAR_TYPES:
-                doc.write('%s, ...' % self._json_example_value_name(argument_model.member))
+                doc.write(f'{self._json_example_value_name(argument_model.member)}, ...')
             else:
                 doc.style.indent()
                 doc.style.new_line()
@@ -329,7 +329,7 @@ class OperationDocumentEventHandler(CLIDocumentEventHandler):
             doc.write('{')
             doc.style.indent()
             key_string = self._json_example_value_name(argument_model.key)
-            doc.write('%s: ' % key_string)
+            doc.write(f'{key_string}: ')
             if argument_model.value.type_name in SCALAR_TYPES:
                 doc.write(self._json_example_value_name(argument_model.value))
             else:
@@ -352,33 +352,27 @@ class OperationDocumentEventHandler(CLIDocumentEventHandler):
             member_model = members[member_name]
             member_type_name = member_model.type_name
             if member_type_name in SCALAR_TYPES:
-                doc.write('"%s": %s' % (member_name,
-                    self._json_example_value_name(member_model)))
-            elif member_type_name == 'structure':
-                doc.write('"%s": ' % member_name)
-                self._json_example(doc, member_model, stack)
-            elif member_type_name == 'map':
-                doc.write('"%s": ' % member_name)
-                self._json_example(doc, member_model, stack)
-            elif member_type_name == 'list':
-                doc.write('"%s": ' % member_name)
+                doc.write(f'"{member_name}": {self._json_example_value_name(member_model)}')
+            elif member_type_name in ['structure', 'map', 'list']:
+                doc.write(f'"{member_name}": ')
                 self._json_example(doc, member_model, stack)
             if i < len(members) - 1:
                 doc.write(',')
-                doc.style.new_line()
             else:
                 doc.style.dedent()
-                doc.style.new_line()
+            doc.style.new_line()
         doc.write('}')
 
     def doc_option_example(self, arg_name, help_command, **kwargs):
         doc = help_command.doc
         cli_argument = help_command.arg_table[arg_name]
-        if cli_argument.group_name in self._arg_groups:
-            if cli_argument.group_name in self._documented_arg_groups:
-                # Args with group_names (boolean args) don't
-                # need to generate example syntax.
-                return
+        if (
+            cli_argument.group_name in self._arg_groups
+            and cli_argument.group_name in self._documented_arg_groups
+        ):
+            # Args with group_names (boolean args) don't
+            # need to generate example syntax.
+            return
         argument_model = cli_argument.argument_model
         docgen = ParamShorthandDocGen()
         if docgen.supports_shorthand(cli_argument):
@@ -400,7 +394,7 @@ class OperationDocumentEventHandler(CLIDocumentEventHandler):
                 doc.writeln(example_line)
             doc.style.end_codeblock()
         if argument_model is not None and argument_model.type_name == 'list' and \
-                argument_model.member.type_name in SCALAR_TYPES:
+                    argument_model.member.type_name in SCALAR_TYPES:
             # A list of scalars is special.  While you *can* use
             # JSON ( ["foo", "bar", "baz"] ), you can also just
             # use the argparse behavior of space separated lists.
@@ -411,7 +405,7 @@ class OperationDocumentEventHandler(CLIDocumentEventHandler):
             doc.style.start_codeblock()
             example_type = self._json_example_value_name(
                 argument_model.member, include_enum_values=False)
-            doc.write('%s %s ...' % (example_type, example_type))
+            doc.write(f'{example_type} {example_type} ...')
             if 'enum' in argument_model.member.metadata:
                 # If we have enum values, we can tell the user
                 # exactly what valid values they can provide.
@@ -446,13 +440,10 @@ class OperationDocumentEventHandler(CLIDocumentEventHandler):
                 self._doc_member_for_output(doc, member_name, member_shape, stack=[])
 
     def _doc_member_for_output(self, doc, member_name, member_shape, stack):
-        if member_shape.name in stack:
-            # Document the recursion once, otherwise just
-            # note the fact that it's recursive and return.
-            if stack.count(member_shape.name) > 1:
-                if member_shape.type_name == 'structure':
-                    doc.write('( ... recursive ... )')
-                return
+        if member_shape.name in stack and stack.count(member_shape.name) > 1:
+            if member_shape.type_name == 'structure':
+                doc.write('( ... recursive ... )')
+            return
         stack.append(member_shape.name)
         try:
             self._do_doc_member_for_output(doc, member_name,
@@ -463,9 +454,9 @@ class OperationDocumentEventHandler(CLIDocumentEventHandler):
     def _do_doc_member_for_output(self, doc, member_name, member_shape, stack):
         docs = member_shape.documentation
         if member_name:
-            doc.write('%s -> (%s)' % (member_name, member_shape.type_name))
+            doc.write(f'{member_name} -> ({member_shape.type_name})')
         else:
-            doc.write('(%s)' % member_shape.type_name)
+            doc.write(f'({member_shape.type_name})')
         doc.style.indent()
         doc.style.new_paragraph()
         doc.include_doc_string(docs)

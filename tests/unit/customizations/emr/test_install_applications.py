@@ -67,46 +67,44 @@ class TestInstallApplications(BaseAWSCommandParamsTest):
               'j-ABC123456 --applications ')
 
     def test_install_hive_site(self):
-        cmdline = (self.prefix + 'Name=Hive,'
-                   'Args=[--hive-site=s3://test/hive-conf/hive-site.xml]')
         result = {'JobFlowId': 'j-ABC123456',
                   'Steps': [INSTALL_HIVE_STEP, INSTALL_HIVE_SITE_STEP]
                   }
+        cmdline = f'{self.prefix}Name=Hive,Args=[--hive-site=s3://test/hive-conf/hive-site.xml]'
         self.assert_params_for_cmd(cmdline, result)
-        cmdline = (self.prefix + 'Name=Hive,'
-                   'Args=[--hive-site=s3://test/hive-conf/hive-site.xml,k1]')
+        cmdline = f'{self.prefix}Name=Hive,Args=[--hive-site=s3://test/hive-conf/hive-site.xml,k1]'
         self.assert_params_for_cmd(cmdline, result)
 
     def test_install_hive_and_pig(self):
-        cmdline = self.prefix + 'Name=Hive Name=Pig'
+        cmdline = f'{self.prefix}Name=Hive Name=Pig'
         result = {'JobFlowId': 'j-ABC123456', 'Steps': [INSTALL_HIVE_STEP,
                                                         INSTALL_PIG_STEP]}
         self.assert_params_for_cmd(cmdline, result)
 
     def test_install_pig_with_profile_region(self):
         self.driver.session.set_config_variable('region', 'cn-north-1')
-        cmdline = self.prefix + 'Name=Pig'
+        cmdline = f'{self.prefix}Name=Pig'
         PIG_STEP = json.dumps(INSTALL_PIG_STEP).\
-            replace('us-east-1', 'cn-north-1')
+                replace('us-east-1', 'cn-north-1')
         result = {'JobFlowId': 'j-ABC123456',
                   'Steps': [json.loads(PIG_STEP)]}
         self.assert_params_for_cmd(cmdline, result)
 
     def test_install_impala_error(self):
-        cmdline = self.prefix + ' Name=Impala'
+        cmdline = f'{self.prefix} Name=Impala'
 
         expected_error_msg = "\naws: error: Impala cannot be installed on" +\
-            " a running cluster. 'Name' should be one of the following:" +\
-            " HIVE, PIG\n"
+                " a running cluster. 'Name' should be one of the following:" +\
+                " HIVE, PIG\n"
         result = self.run_cmd(cmdline, 255)
         self.assertEqual(result[1], expected_error_msg)
 
     def test_install_unknown_app_error(self):
-        cmdline = self.prefix + 'Name=unknown'
+        cmdline = f'{self.prefix}Name=unknown'
 
         expected_error_msg = "\naws: error: Unknown application: unknown." +\
-            " 'Name' should be one of the following: HIVE, PIG, HBASE," +\
-            " GANGLIA, IMPALA, MAPR, MAPR_M3, MAPR_M5, MAPR_M7\n"
+                " 'Name' should be one of the following: HIVE, PIG, HBASE," +\
+                " GANGLIA, IMPALA, MAPR, MAPR_M3, MAPR_M5, MAPR_M7\n"
         result = self.run_cmd(cmdline, 255)
         self.assertEqual(result[1], expected_error_msg)
 

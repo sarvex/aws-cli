@@ -31,8 +31,7 @@ class TestSyncCommand(BaseAWSCommandParamsTest):
 
     def test_website_redirect_ignore_paramfile(self):
         full_path = self.files.create_file('foo.txt', 'mycontent')
-        cmdline = '%s %s s3://bucket/key.txt --website-redirect %s' % \
-            (self.prefix, self.files.rootdir, 'http://someserver')
+        cmdline = f'{self.prefix} {self.files.rootdir} s3://bucket/key.txt --website-redirect http://someserver'
         self.parsed_responses = [
             {"CommonPrefixes": [], "Contents": []},
             {'ETag': '"c8afdb36c52cf4727836669019e69222"'}

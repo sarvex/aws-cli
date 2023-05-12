@@ -144,9 +144,7 @@ class TestSNSTopicHelper(unittest.TestCase):
         name = 'arn:aws:sns:us-east-1:934212987125:config'
         with mock.patch('sys.stdout', StringIO()) as mock_stdout:
             self.helper.prepare_topic(name)
-            self.assertIn(
-                'Using existing SNS topic: %s' % name,
-                mock_stdout.getvalue())
+            self.assertIn(f'Using existing SNS topic: {name}', mock_stdout.getvalue())
 
 
 class TestSubscribeCommand(unittest.TestCase):

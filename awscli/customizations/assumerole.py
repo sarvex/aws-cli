@@ -60,7 +60,7 @@ def create_assume_role_provider(session, provider_cls):
 
 def create_refresher_function(client, params):
     def refresh():
-        role_session_name = 'AWS-CLI-session-%s' % (int(time.time()))
+        role_session_name = f'AWS-CLI-session-{int(time.time())}'
         params['RoleSessionName'] = role_session_name
         response = client.assume_role(**params)
         credentials = response['Credentials']
@@ -72,6 +72,7 @@ def create_refresher_function(client, params):
             'token': credentials['SessionToken'],
             'expiry_time': credentials['Expiration'],
         }
+
     return refresh
 
 
@@ -125,8 +126,7 @@ class JSONFileCache(object):
             f.write(file_content)
 
     def _convert_cache_key(self, cache_key):
-        full_path = os.path.join(self._working_dir, cache_key + '.json')
-        return full_path
+        return os.path.join(self._working_dir, f'{cache_key}.json')
 
 
 class AssumeRoleProvider(credentials.CredentialProvider):
@@ -200,27 +200,26 @@ class AssumeRoleProvider(credentials.CredentialProvider):
         creds = self._load_creds_from_cache()
         if creds is not None:
             LOG.debug("Credentials for role retrieved from cache.")
-            return creds
         else:
             # We get the Credential used by botocore as well
             # as the original parsed response from the server.
             creds, response = self._retrieve_temp_credentials()
             cache_key = self._create_cache_key()
             self._write_cached_credentials(response, cache_key)
-            return creds
+
+        return creds
 
     def _load_creds_from_cache(self):
         cache_key = self._create_cache_key()
         try:
             from_cache = self._cache[cache_key]
-            if self._is_expired(from_cache):
-                # Don't need to delete the cache entry,
-                # when we refresh via AssumeRole, we'll
-                # update the cache with the new entry.
-                LOG.debug("Credentials were found in cache, but they are expired.")
-                return None
-            else:
+            if not self._is_expired(from_cache):
                 return self._create_creds_from_response(from_cache)
+            # Don't need to delete the cache entry,
+            # when we refresh via AssumeRole, we'll
+            # update the cache with the new entry.
+            LOG.debug("Credentials were found in cache, but they are expired.")
+            return None
         except KeyError:
             return None
 
@@ -235,7 +234,7 @@ class AssumeRoleProvider(credentials.CredentialProvider):
         # On windows, ':' is not allowed in filenames, so we'll
         # replace them with '_' instead.
         role_arn = role_config['role_arn'].replace(':', '_')
-        cache_key = '%s--%s' % (self._profile_name, role_arn)
+        cache_key = f'{self._profile_name}--{role_arn}'
         return cache_key.replace('/', '-')
 
     def _write_cached_credentials(self, creds, cache_key):
@@ -287,12 +286,12 @@ class AssumeRoleProvider(credentials.CredentialProvider):
 
     def _create_client_from_config(self, config):
         source_cred_values = config['source_cred_values']
-        client = self._client_creator(
-            'sts', aws_access_key_id=source_cred_values['aws_access_key_id'],
+        return self._client_creator(
+            'sts',
+            aws_access_key_id=source_cred_values['aws_access_key_id'],
             aws_secret_access_key=source_cred_values['aws_secret_access_key'],
             aws_session_token=source_cred_values.get('aws_session_token'),
         )
-        return client
 
     def _retrieve_temp_credentials(self):
         LOG.debug("Retrieving credentials via AssumeRole.")
@@ -300,7 +299,7 @@ class AssumeRoleProvider(credentials.CredentialProvider):
         client = self._create_client_from_config(config)
 
         assume_role_kwargs = self._assume_role_base_kwargs(config)
-        role_session_name = 'AWS-CLI-session-%s' % (int(time.time()))
+        role_session_name = f'AWS-CLI-session-{int(time.time())}'
         assume_role_kwargs['RoleSessionName'] = role_session_name
 
         response = client.assume_role(**assume_role_kwargs)

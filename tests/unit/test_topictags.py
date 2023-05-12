@@ -56,7 +56,7 @@ class TestTopicTagDBGeneral(TestTopicTagDB):
         topic_dir = self.file_creator.rootdir
         self.topic_tag_db = TopicTagDB(topic_dir=topic_dir)
         for i in range(5):
-            topic_name = 'topic-name-' + str(i)
+            topic_name = f'topic-name-{str(i)}'
             source_files.append(self.file_creator.create_file(topic_name, ''))
 
         self.assertCountEqual(
@@ -67,8 +67,7 @@ class TestTopicTagDBGeneral(TestTopicTagDB):
     def test_get_all_topic_source_files_ignore_index(self):
         topic_filename = 'mytopic'
         index_filename = 'topic-tags.json'
-        source_files = []
-        source_files.append(self.file_creator.create_file(topic_filename, ''))
+        source_files = [self.file_creator.create_file(topic_filename, '')]
         index_file = self.file_creator.create_file(index_filename, '')
         topic_dir = self.file_creator.rootdir
         self.topic_tag_db = TopicTagDB(index_file=index_file,
@@ -80,9 +79,8 @@ class TestTopicTagDBGeneral(TestTopicTagDB):
 
     def test_get_all_topic_source_files_ignore_hidden(self):
         topic_filename = 'mytopic'
-        hidden_filename = '.' + topic_filename
-        source_files = []
-        source_files.append(self.file_creator.create_file(topic_filename, ''))
+        hidden_filename = f'.{topic_filename}'
+        source_files = [self.file_creator.create_file(topic_filename, '')]
         self.file_creator.create_file(hidden_filename, '')
         topic_dir = self.file_creator.rootdir
         self.topic_tag_db = TopicTagDB(topic_dir=topic_dir)
@@ -389,9 +387,8 @@ class TestTopicDBScan(TestTopicTagDB):
     def create_topic_src_file(self, topic_name, tags):
         """Create a topic source file from a list of tags and topic name"""
         content = '\n'.join(tags)
-        topic_name = topic_name + '.rst'
-        topic_filepath = self.file_creator.create_file(topic_name, content)
-        return topic_filepath
+        topic_name = f'{topic_name}.rst'
+        return self.file_creator.create_file(topic_name, content)
 
     def assert_json_index(self, file_paths, reference_tag_dict):
         """Asserts the scanned tags by checking the saved JSON index"""
@@ -539,21 +536,21 @@ class TestTopicDBScan(TestTopicTagDB):
         reference_tag_dict = {}
         topic_files = []
         for i in range(5):
-            topic_name = topic_base + '-' + str(i)
+            topic_name = f'{topic_base}-{str(i)}'
             tags = [
-                ':description: This is about %s' % topic_name,
+                f':description: This is about {topic_name}',
                 ':title: Title',
                 ':category: Foo',
                 ':related topic: Bar',
-                ':related command: ec2'
+                ':related command: ec2',
             ]
 
             reference_tag_dict[topic_name] = {
-                'description': ['This is about %s' % topic_name],
+                'description': [f'This is about {topic_name}'],
                 'title': ['Title'],
                 'category': ['Foo'],
                 'related topic': ['Bar'],
-                'related command': ['ec2']
+                'related command': ['ec2'],
             }
             topic_files.append(self.create_topic_src_file(topic_name, tags))
         self.assert_json_index(topic_files, reference_tag_dict)

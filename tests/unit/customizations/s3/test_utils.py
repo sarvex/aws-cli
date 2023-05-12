@@ -204,8 +204,7 @@ class TestReadFileChunk(unittest.TestCase):
 
 class TestRelativePath(unittest.TestCase):
     def test_relpath_normal(self):
-        self.assertEqual(relative_path('/tmp/foo/bar', '/tmp/foo'),
-                         '.' + os.sep + 'bar')
+        self.assertEqual(relative_path('/tmp/foo/bar', '/tmp/foo'), f'.{os.sep}bar')
 
     # We need to patch out relpath with the ntpath version so
     # we can simulate testing drives on windows.

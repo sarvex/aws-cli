@@ -43,20 +43,6 @@ class TestDescribeInstances(BaseAWSCommandParamsTest):
 
     def test_user_data(self):
         return
-        data = u'\u0039'
-        with temporary_file('r+') as tmp:
-            with compat_open(tmp.name, 'w') as f:
-                f.write(data)
-                f.flush()
-                args = (
-                    self.prefix +
-                    ' --image-id foo --user-data file://%s' % f.name)
-                result = {'ImageId': 'foo',
-                          'MaxCount': 1,
-                          'MinCount': 1,
-                          # base64 encoded content of utf-8 encoding of data.
-                          'UserData': 'OQ=='}
-            self.assert_params_for_cmd(args, result)
 
     def test_count_range(self):
         args = ' --image-id ami-foobar --count 5:10'
@@ -90,8 +76,10 @@ class TestDescribeInstances(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(args_list, result)
 
     def test_secondary_ip_address(self):
-        args = ' --image-id ami-foobar --count 1 '
-        args += '--secondary-private-ip-addresses 10.0.2.106'
+        args = (
+            ' --image-id ami-foobar --count 1 '
+            + '--secondary-private-ip-addresses 10.0.2.106'
+        )
         args_list = (self.prefix + args).split()
         result = {
             'NetworkInterface.1.DeviceIndex': 0,
@@ -112,8 +100,10 @@ class TestDescribeInstances(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(args_list, result)
 
     def test_secondary_ip_addresses(self):
-        args = ' --image-id ami-foobar --count 1 '
-        args += '--secondary-private-ip-addresses 10.0.2.106 10.0.2.107'
+        args = (
+            ' --image-id ami-foobar --count 1 '
+            + '--secondary-private-ip-addresses 10.0.2.106 10.0.2.107'
+        )
         args_list = (self.prefix + args).split()
         result = {
             'ImageId': 'ami-foobar',
@@ -127,8 +117,10 @@ class TestDescribeInstances(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(args_list, result)
 
     def test_secondary_ip_address_count(self):
-        args = ' --image-id ami-foobar --count 1 '
-        args += '--secondary-private-ip-address-count 4'
+        args = (
+            ' --image-id ami-foobar --count 1 '
+            + '--secondary-private-ip-address-count 4'
+        )
         args_list = (self.prefix + args).split()
         result = {
             'NetworkInterfaces': [{'DeviceIndex': 0,
@@ -140,8 +132,10 @@ class TestDescribeInstances(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(args_list, result)
 
     def test_associate_public_ip_address(self):
-        args = ' --image-id ami-foobar --count 1 --subnet-id subnet-12345678 '
-        args += '--associate-public-ip-address'
+        args = (
+            ' --image-id ami-foobar --count 1 --subnet-id subnet-12345678 '
+            + '--associate-public-ip-address'
+        )
         args_list = (self.prefix + args).split()
         result = {
             'NetworkInterfaces': [
@@ -156,8 +150,10 @@ class TestDescribeInstances(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(args_list, result)
 
     def test_associate_public_ip_address_switch_order(self):
-        args = ' --image-id ami-foobar --count 1 '
-        args += '--associate-public-ip-address --subnet-id subnet-12345678'
+        args = (
+            ' --image-id ami-foobar --count 1 '
+            + '--associate-public-ip-address --subnet-id subnet-12345678'
+        )
         args_list = (self.prefix + args).split()
         result = {
             'NetworkInterfaces': [
@@ -172,8 +168,10 @@ class TestDescribeInstances(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(args_list, result)
 
     def test_no_associate_public_ip_address(self):
-        args = ' --image-id ami-foobar --count 1  --subnet-id subnet-12345678 '
-        args += '--no-associate-public-ip-address'
+        args = (
+            ' --image-id ami-foobar --count 1  --subnet-id subnet-12345678 '
+            + '--no-associate-public-ip-address'
+        )
         args_list = (self.prefix + args).split()
         result = {
             'ImageId': 'ami-foobar',
@@ -196,8 +194,7 @@ class TestDescribeInstances(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(args_list, result)
 
     def test_associate_public_ip_address_and_group_id(self):
-        args = ' --image-id ami-foobar --count 1 '
-        args += '--security-group-id sg-12345678 '
+        args = ' --image-id ami-foobar --count 1 ' + '--security-group-id sg-12345678 '
         args += '--associate-public-ip-address --subnet-id subnet-12345678'
         args_list = (self.prefix + args).split()
         result = {
@@ -214,8 +211,7 @@ class TestDescribeInstances(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(args_list, result)
 
     def test_group_id_alone(self):
-        args = ' --image-id ami-foobar --count 1 '
-        args += '--security-group-id sg-12345678'
+        args = ' --image-id ami-foobar --count 1 ' + '--security-group-id sg-12345678'
         args_list = (self.prefix + args).split()
         result = {
             'SecurityGroupIds': ['sg-12345678'],
@@ -226,8 +222,7 @@ class TestDescribeInstances(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(args_list, result)
 
     def test_associate_public_ip_address_and_private_ip_address(self):
-        args = ' --image-id ami-foobar --count 1 '
-        args += '--private-ip-address 10.0.0.200 '
+        args = ' --image-id ami-foobar --count 1 ' + '--private-ip-address 10.0.0.200 '
         args += '--associate-public-ip-address --subnet-id subnet-12345678'
         args_list = (self.prefix + args).split()
         result = {
@@ -246,8 +241,7 @@ class TestDescribeInstances(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(args_list, result)
 
     def test_private_ip_address_alone(self):
-        args = ' --image-id ami-foobar --count 1 '
-        args += '--private-ip-address 10.0.0.200'
+        args = ' --image-id ami-foobar --count 1 ' + '--private-ip-address 10.0.0.200'
         args_list = (self.prefix + args).split()
         result = {
             'PrivateIpAddress': '10.0.0.200',

@@ -41,12 +41,7 @@ def is_special_file(path):
     if stat.S_ISBLK(mode):
         return True
     # FIFO.
-    if stat.S_ISFIFO(mode):
-        return True
-    # Socket.
-    if stat.S_ISSOCK(mode):
-        return True
-    return False
+    return True if stat.S_ISFIFO(mode) else bool(stat.S_ISSOCK(mode))
 
 
 def is_readable(path):
@@ -187,8 +182,7 @@ class FileGenerator(object):
                         # means we need to recurse into this sub directory
                         # before yielding the rest of this directory's
                         # contents.
-                        for x in self.list_files(file_path, dir_op):
-                            yield x
+                        yield from self.list_files(file_path, dir_op)
                     else:
                         size, last_update = get_file_stat(file_path)
                         yield file_path, size, last_update
@@ -232,10 +226,7 @@ class FileGenerator(object):
                 path = path[:-1]
             if os.path.islink(path):
                 return True
-        warning_triggered = self.triggers_warning(path)
-        if warning_triggered:
-            return True
-        return False
+        return bool(warning_triggered := self.triggers_warning(path))
 
     def triggers_warning(self, path):
         """
@@ -291,9 +282,7 @@ class FileGenerator(object):
                         # exist locally.  But user should be able to
                         # delete them.
                         yield source_path, size, last_update
-                elif not dir_op and s3_path != source_path:
-                    pass
-                else:
+                elif dir_op or s3_path == source_path:
                     yield source_path, size, last_update
 
     def _list_single_object(self, s3_path):
@@ -309,12 +298,12 @@ class FileGenerator(object):
             # This is what the customer is going to see so we want to
             # give as much detail as we have.
             copy_fields = e.__dict__.copy()
-            if not e.error_message == 'Not Found':
+            if e.error_message != 'Not Found':
                 raise
             if e.http_status_code == 404:
                 # The key does not exist so we'll raise a more specific
                 # error message here.
-                copy_fields['error_message'] = 'Key "%s" does not exist' % key
+                copy_fields['error_message'] = f'Key "{key}" does not exist'
             else:
                 reason = six.moves.http_client.responses[
                     e.http_status_code]

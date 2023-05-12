@@ -55,17 +55,29 @@ class S3Handler(object):
         self.result_queue = result_queue
         if not self.result_queue:
             self.result_queue = queue.Queue()
-        self.params = {'dryrun': False, 'quiet': False, 'acl': None,
-                       'guess_mime_type': True, 'sse': False,
-                       'storage_class': None, 'website_redirect': None,
-                       'content_type': None, 'cache_control': None,
-                       'content_disposition': None, 'content_encoding': None,
-                       'content_language': None, 'expires': None,
-                       'grants': None, 'only_show_errors': False,
-                       'is_stream': False, 'paths_type': None,
-                       'expected_size': None, 'metadata_directive': None}
-        self.params['region'] = params['region']
-        for key in self.params.keys():
+        self.params = {
+            'dryrun': False,
+            'quiet': False,
+            'acl': None,
+            'guess_mime_type': True,
+            'sse': False,
+            'storage_class': None,
+            'website_redirect': None,
+            'content_type': None,
+            'cache_control': None,
+            'content_disposition': None,
+            'content_encoding': None,
+            'content_language': None,
+            'expires': None,
+            'grants': None,
+            'only_show_errors': False,
+            'is_stream': False,
+            'paths_type': None,
+            'expected_size': None,
+            'metadata_directive': None,
+            'region': params['region'],
+        }
+        for key in self.params:
             if key in params:
                 self.params[key] = params[key]
         self.multi_threshold = self._runtime_config['multipart_threshold']
@@ -207,11 +219,12 @@ class S3Handler(object):
         if hasattr(filename, 'size'):
             above_multipart_threshold = filename.size > self.multi_threshold
             if above_multipart_threshold:
-                if filename.operation_name in ('upload', 'download',
-                                               'move', 'copy'):
-                    return True
-                else:
-                    return False
+                return filename.operation_name in (
+                    'upload',
+                    'download',
+                    'move',
+                    'copy',
+                )
         else:
             return False
 
@@ -230,8 +243,9 @@ class S3Handler(object):
                 num_uploads = self._enqueue_multipart_copy_tasks(
                     filename, remove_remote_file=True)
             else:
-                raise ValueError("Unknown transfer type of %s -> %s" %
-                                 (filename.src_type, filename.dest_type))
+                raise ValueError(
+                    f"Unknown transfer type of {filename.src_type} -> {filename.dest_type}"
+                )
         elif filename.operation_name == 'copy':
             num_uploads = self._enqueue_multipart_copy_tasks(
                 filename, remove_remote_file=False)
@@ -413,9 +427,7 @@ class S3StreamHandler(S3Handler):
         along with a boolean telling whether the amount requested is
         the amount returned.
         """
-        stream_filein = sys.stdin
-        if six.PY3:
-            stream_filein = sys.stdin.buffer
+        stream_filein = sys.stdin.buffer if six.PY3 else sys.stdin
         payload = stream_filein.read(amount_requested)
         payload_file = six.BytesIO(payload)
         return payload_file, len(payload) == amount_requested

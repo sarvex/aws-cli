@@ -136,12 +136,11 @@ class S3BucketHelper(object):
 
     def prepare_bucket(self, s3_path):
         bucket, key = find_bucket_key(s3_path)
-        bucket_exists = self._check_bucket_exists(bucket)
-        if not bucket_exists:
+        if bucket_exists := self._check_bucket_exists(bucket):
+            sys.stdout.write('Using existing S3 bucket: %s\n' % bucket)
+        else:
             self._create_bucket(bucket)
             sys.stdout.write('Using new S3 bucket: %s\n' % bucket)
-        else:
-            sys.stdout.write('Using existing S3 bucket: %s\n' % bucket)
         return bucket, key
 
     def _check_bucket_exists(self, bucket):

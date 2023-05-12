@@ -19,20 +19,18 @@ class TestAddTags(BaseAWSCommandParamsTest):
     prefix = 'emr add-tags'
 
     def test_add_tags_key_value(self):
-        args = ' --resource-id j-ABC123456 --tags k1=v1 k2=v2'
-        cmdline = self.prefix + args
         result = {'ResourceId': 'j-ABC123456',
                   'Tags': [{'Key': 'k1', 'Value': 'v1'},
                            {'Key': 'k2', 'Value': 'v2'}]}
+        cmdline = f'{self.prefix} --resource-id j-ABC123456 --tags k1=v1 k2=v2'
         self.assert_params_for_cmd(cmdline, result)
 
     def test_add_tags_key_with_empty_value(self):
-        args = ' --resource-id j-ABC123456 --tags k1=v1 k2 k3=v3'
-        cmdline = self.prefix + args
         result = {'ResourceId': 'j-ABC123456',
                   'Tags': [{'Key': 'k1', 'Value': 'v1'},
                            {'Key': 'k2', 'Value': ''},
                            {'Key': 'k3', 'Value': 'v3'}]}
+        cmdline = f'{self.prefix} --resource-id j-ABC123456 --tags k1=v1 k2 k3=v3'
         self.assert_params_for_cmd(cmdline, result)
 
     def test_add_tags_key_value_space(self):

@@ -60,10 +60,10 @@ def index_hydrate(params, container, cli_type, key, value):
         value = DEFAULT_VALUE_TYPE_MAP.get(_type, lambda x: x)(value)
 
     # Set the proper options field
-    if _type + 'Options' not in params['IndexField']:
-        params['IndexField'][_type + 'Options'] = {}
+    if f'{_type}Options' not in params['IndexField']:
+        params['IndexField'][f'{_type}Options'] = {}
 
-    params['IndexField'][_type + 'Options'][key.split(SEP)[-1]] = value
+    params['IndexField'][f'{_type}Options'][key.split(SEP)[-1]] = value
 
 
 FLATTEN_CONFIG = {

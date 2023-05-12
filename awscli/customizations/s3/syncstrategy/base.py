@@ -120,19 +120,11 @@ class BaseSync(object):
 
     @property
     def arg_name(self):
-        # Retrieves the ``name`` of the sync strategy's ``ARGUMENT``.
-        name = None
-        if self.ARGUMENT is not None:
-            name = self.ARGUMENT.get('name', None)
-        return name
+        return self.ARGUMENT.get('name', None) if self.ARGUMENT is not None else None
 
     @property
     def arg_dest(self):
-        # Retrieves the ``dest`` of the sync strategy's ``ARGUMENT``.
-        dest = None
-        if self.ARGUMENT is not None:
-            dest = self.ARGUMENT.get('dest', None)
-        return dest
+        return self.ARGUMENT.get('dest', None) if self.ARGUMENT is not None else None
 
     def add_sync_argument(self, arg_table, **kwargs):
         # This function adds sync strategy's argument to the ``SyncCommand``
@@ -171,10 +163,9 @@ class BaseSync(object):
         elif self.arg_name is not None:
             # ``name`` has all ``-`` replaced with ``_`` in ``params``.
             name_in_params = self.arg_name.replace('-', '_')
-        if name_in_params is not None:
-            if params.get(name_in_params):
-                # Return the sync strategy object to be used for syncing.
-                return self
+        if name_in_params is not None and params.get(name_in_params):
+            # Return the sync strategy object to be used for syncing.
+            return self
         return None
 
     def total_seconds(self, td):
@@ -204,23 +195,11 @@ class BaseSync(object):
         dest_time = dest_file.last_update
         delta = dest_time - src_time
         cmd = src_file.operation_name
-        if cmd == "upload" or cmd == "copy":
-            if self.total_seconds(delta) >= 0:
-                # Destination is newer than source.
-                return True
-            else:
-                # Destination is older than source, so
-                # we have a more recently updated file
-                # at the source location.
-                return False
+        if cmd in ["upload", "copy"]:
+            return self.total_seconds(delta) >= 0
         elif cmd == "download":
 
-            if self.total_seconds(delta) <= 0:
-                return True
-            else:
-                # delta is positive, so the destination
-                # is newer than the source.
-                return False
+            return self.total_seconds(delta) <= 0
 
 
 class SizeAndLastModifiedSync(BaseSync):

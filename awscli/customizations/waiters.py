@@ -169,17 +169,14 @@ class WaiterStateDocBuilder(object):
         # If success is based off of the state of a resource include the
         # description about what resource is looked at.
         if matcher in ['path', 'pathAny', 'pathAll']:
-            resource_description = u'JMESPath query %s returns ' % \
-                acceptor.argument
+            resource_description = f'JMESPath query {acceptor.argument} returns '
             # Prepend the resource description to the template description
             success_description = resource_description + success_description
-        # Complete the description by filling in the expected success state.
-        full_success_description = success_description % acceptor.expected
-        return full_success_description
+        return success_description % acceptor.expected
 
     def _build_operation_description(self, operation):
         operation_name = xform_name(operation).replace('_', '-')
-        return u'when polling with ``%s``.' % operation_name
+        return f'when polling with ``{operation_name}``.'
 
 
 class WaiterCaller(object):

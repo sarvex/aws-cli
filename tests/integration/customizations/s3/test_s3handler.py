@@ -79,17 +79,23 @@ class S3HandlerTestDelete(unittest.TestCase):
         Tests S3 deletes. The files used are the same generated from
         filegenerators_test.py.  This includes the create s3 file.
         """
-        keys = [self.bucket + '/another_directory/text2.txt',
-                self.bucket + '/text1.txt',
-                self.bucket + '/another_directory/']
-        tasks = []
-        for key in keys:
-            tasks.append(FileInfo(
-                src=key, src_type='s3',
-                dest_type='local', operation_name='delete',
-                size=0, client=self.client,
-                source_client=self.source_client
-            ))
+        keys = [
+            f'{self.bucket}/another_directory/text2.txt',
+            f'{self.bucket}/text1.txt',
+            f'{self.bucket}/another_directory/',
+        ]
+        tasks = [
+            FileInfo(
+                src=key,
+                src_type='s3',
+                dest_type='local',
+                operation_name='delete',
+                size=0,
+                client=self.client,
+                source_client=self.source_client,
+            )
+            for key in keys
+        ]
         response = self.client.list_objects(Bucket=self.bucket)
         self.assertEqual(len(response.get('Contents', [])), 3)
         self.s3_handler.call(tasks)
@@ -99,7 +105,7 @@ class S3HandlerTestDelete(unittest.TestCase):
     def test_delete_url_encode(self):
         bucket = make_s3_files(self.session, key1='a+b/foo', key2=None)
         self.addCleanup(s3_cleanup, bucket, self.session)
-        key = bucket + '/a+b/foo'
+        key = f'{bucket}/a+b/foo'
         tasks = [FileInfo(
             src=key, src_type='s3',
             dest_type='local', operation_name='delete', size=0,
@@ -129,8 +135,10 @@ class S3HandlerTestUpload(unittest.TestCase):
         self.bucket = create_bucket(self.session)
         self.file_creator = FileCreator()
         self.loc_files = make_loc_files(self.file_creator)
-        self.s3_files = [self.bucket + '/text1.txt',
-                         self.bucket + '/another_directory/text2.txt']
+        self.s3_files = [
+            f'{self.bucket}/text1.txt',
+            f'{self.bucket}/another_directory/text2.txt',
+        ]
         self.output = StringIO()
         self.saved_stderr = sys.stderr
         sys.stderr = self.output
@@ -147,14 +155,16 @@ class S3HandlerTestUpload(unittest.TestCase):
         self.assertEqual(len(response.get('Contents', [])), 0)
         # Create file info objects to perform upload.
         files = [self.loc_files[0], self.loc_files[1]]
-        tasks = []
-        for i in range(len(files)):
-            tasks.append(FileInfo(
+        tasks = [
+            FileInfo(
                 src=self.loc_files[i],
                 dest=self.s3_files[i],
-                operation_name='upload', size=0,
+                operation_name='upload',
+                size=0,
                 client=self.client,
-            ))
+            )
+            for i in range(len(files))
+        ]
         # Perform the upload.
         self.s3_handler.call(tasks)
         # Confirm the files were uploaded.
@@ -163,15 +173,16 @@ class S3HandlerTestUpload(unittest.TestCase):
 
     def test_multi_upload(self):
         files = [self.loc_files[0], self.loc_files[1]]
-        tasks = []
-        for i in range(len(files)):
-            tasks.append(FileInfo(
+        tasks = [
+            FileInfo(
                 src=self.loc_files[i],
-                dest=self.s3_files[i], size=15,
+                dest=self.s3_files[i],
+                size=15,
                 operation_name='upload',
                 client=self.client,
-            ))
-
+            )
+            for i in range(len(files))
+        ]
         # Note nothing is uploaded because the file is too small
         # a print statement will show up if it fails.
         self.s3_handler_multi.call(tasks)
@@ -188,8 +199,8 @@ class S3HandlerTestUnicodeMove(unittest.TestCase):
         self.s3_handler = S3Handler(self.session, params)
         self.bucket = make_s3_files(self.session, key1=u'\u2713')
         self.bucket2 = create_bucket(self.session)
-        self.s3_files = [self.bucket + '/' + u'\u2713']
-        self.s3_files2 = [self.bucket2 + '/' + u'\u2713']
+        self.s3_files = [f'{self.bucket}/' + u'\u2713']
+        self.s3_files2 = [f'{self.bucket2}/' + u'\u2713']
 
     def tearDown(self):
         s3_cleanup(self.bucket, self.session)
@@ -198,15 +209,19 @@ class S3HandlerTestUnicodeMove(unittest.TestCase):
     def test_move_unicode(self):
         response = self.client.list_objects(Bucket=self.bucket)
         self.assertEqual(len(response.get('Contents', [])), 3)
-        # Create file info objects to perform move.
-        tasks = []
-        for i in range(len(self.s3_files)):
-            tasks.append(FileInfo(
-                src=self.s3_files[i], src_type='s3',
-                dest=self.s3_files2[i], dest_type='s3',
-                operation_name='move', size=0,
-                client=self.client, source_client=self.source_client
-            ))
+        tasks = [
+            FileInfo(
+                src=self.s3_files[i],
+                src_type='s3',
+                dest=self.s3_files2[i],
+                dest_type='s3',
+                operation_name='move',
+                size=0,
+                client=self.client,
+                source_client=self.source_client,
+            )
+            for i in range(len(self.s3_files))
+        ]
         # Perform the move.
         self.s3_handler.call(tasks)
         response = self.client.list_objects(Bucket=self.bucket2)
@@ -227,10 +242,14 @@ class S3HandlerTestMove(unittest.TestCase):
         self.s3_handler = S3Handler(self.session, params)
         self.bucket = make_s3_files(self.session)
         self.bucket2 = create_bucket(self.session)
-        self.s3_files = [self.bucket + '/text1.txt',
-                         self.bucket + '/another_directory/text2.txt']
-        self.s3_files2 = [self.bucket2 + '/text1.txt',
-                          self.bucket2 + '/another_directory/text2.txt']
+        self.s3_files = [
+            f'{self.bucket}/text1.txt',
+            f'{self.bucket}/another_directory/text2.txt',
+        ]
+        self.s3_files2 = [
+            f'{self.bucket2}/text1.txt',
+            f'{self.bucket2}/another_directory/text2.txt',
+        ]
 
     def tearDown(self):
         s3_cleanup(self.bucket, self.session)
@@ -239,16 +258,19 @@ class S3HandlerTestMove(unittest.TestCase):
     def test_move(self):
         response = self.client.list_objects(Bucket=self.bucket)
         self.assertEqual(len(response['Contents']), 3)
-        # Create file info objects to perform move.
-        tasks = []
-        for i in range(len(self.s3_files)):
-            tasks.append(FileInfo(
-                src=self.s3_files[i], src_type='s3',
-                dest=self.s3_files2[i], dest_type='s3',
-                operation_name='move', size=0,
+        tasks = [
+            FileInfo(
+                src=self.s3_files[i],
+                src_type='s3',
+                dest=self.s3_files2[i],
+                dest_type='s3',
+                operation_name='move',
+                size=0,
                 client=self.client,
-                source_client=self.client
-            ))
+                source_client=self.client,
+            )
+            for i in range(len(self.s3_files))
+        ]
         # Perform the move.
         self.s3_handler.call(tasks)
         # Confirm the files were moved.  The origial bucket had three
@@ -274,14 +296,16 @@ class S3HandlerTestDownload(unittest.TestCase):
             runtime_config=runtime_config(multipart_threshold=10,
                                           multipart_chunksize=2))
         self.bucket = make_s3_files(self.session)
-        self.s3_files = [self.bucket + '/text1.txt',
-                         self.bucket + '/another_directory/text2.txt']
+        self.s3_files = [
+            f'{self.bucket}/text1.txt',
+            f'{self.bucket}/another_directory/text2.txt',
+        ]
         self.file_creator = FileCreator()
         directory1 = self.file_creator.rootdir + os.sep + 'some_directory' + \
-            os.sep
-        filename1 = directory1 + "text1.txt"
-        directory2 = directory1 + 'another_directory' + os.sep
-        filename2 = directory2 + "text2.txt"
+                os.sep
+        filename1 = f"{directory1}text1.txt"
+        directory2 = f'{directory1}another_directory{os.sep}'
+        filename2 = f"{directory2}text2.txt"
         self.loc_files = [filename1, filename2]
 
     def tearDown(self):
@@ -292,16 +316,20 @@ class S3HandlerTestDownload(unittest.TestCase):
         # Confirm that the files do not exist.
         for filename in self.loc_files:
             self.assertFalse(os.path.exists(filename))
-        # Create file info objects to perform download.
-        tasks = []
         time = datetime.datetime.now()
-        for i in range(len(self.s3_files)):
-            tasks.append(FileInfo(
-                src=self.s3_files[i], src_type='s3',
-                dest=self.loc_files[i], dest_type='local',
-                last_update=time, operation_name='download',
-                size=0, client=self.client
-            ))
+        tasks = [
+            FileInfo(
+                src=self.s3_files[i],
+                src_type='s3',
+                dest=self.loc_files[i],
+                dest_type='local',
+                last_update=time,
+                operation_name='download',
+                size=0,
+                client=self.client,
+            )
+            for i in range(len(self.s3_files))
+        ]
         # Perform the download.
         self.s3_handler.call(tasks)
         # Confirm that the files now exist.
@@ -314,15 +342,20 @@ class S3HandlerTestDownload(unittest.TestCase):
             self.assertEqual(filename.read(), b'This is another test.')
 
     def test_multi_download(self):
-        tasks = []
         time = datetime.datetime.now()
-        for i in range(len(self.s3_files)):
-            tasks.append(FileInfo(
-                src=self.s3_files[i], src_type='s3',
-                dest=self.loc_files[i], dest_type='local',
-                last_update=time, operation_name='download',
-                size=15, client=self.client,
-            ))
+        tasks = [
+            FileInfo(
+                src=self.s3_files[i],
+                src_type='s3',
+                dest=self.loc_files[i],
+                dest_type='local',
+                last_update=time,
+                operation_name='download',
+                size=15,
+                client=self.client,
+            )
+            for i in range(len(self.s3_files))
+        ]
         # Perform the multipart  download.
         self.s3_handler_multi.call(tasks)
         # Confirm that the files now exist.
@@ -353,25 +386,27 @@ class S3HandlerTestBucket(unittest.TestCase):
     def test_bucket(self):
         rand1 = random.randrange(5000)
         rand2 = random.randrange(5000)
-        self.bucket = str(rand1) + 'mybucket' + str(rand2) + '/'
+        self.bucket = f'{rand1}mybucket{rand2}/'
 
         file_info = FileInfo(
             src=self.bucket, operation_name='make_bucket', size=0,
             client=self.client, source_client=self.source_client
         )
         S3Handler(self.session, self.params).call([file_info])
-        buckets_list = []
-        for bucket in self.client.list_buckets().get('Buckets', []):
-            buckets_list.append(bucket['Name'])
+        buckets_list = [
+            bucket['Name']
+            for bucket in self.client.list_buckets().get('Buckets', [])
+        ]
         self.assertIn(self.bucket[:-1], buckets_list)
 
         file_info = FileInfo(
             src=self.bucket, operation_name='remove_bucket', size=0,
             client=self.client, source_client=self.source_client)
         S3Handler(self.session, self.params).call([file_info])
-        buckets_list = []
-        for bucket in self.client.list_buckets().get('Buckets', []):
-            buckets_list.append(bucket['Name'])
+        buckets_list = [
+            bucket['Name']
+            for bucket in self.client.list_buckets().get('Buckets', [])
+        ]
         self.assertNotIn(self.bucket[:-1], buckets_list)
 
 

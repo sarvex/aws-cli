@@ -243,13 +243,12 @@ class TestDescribeCluster(BaseAWSCommandParamsTest):
     def test_operations_called(
             self, find_master_public_dns_patch,
             construct_result_patch):
-        find_master_public_dns_patch.return_value = \
-            list_instances_result_mock["Instances"][0]['PublicDnsName']
-        construct_result_patch.return_value = dict()
+        construct_result_patch.return_value = {}
 
-        args = ' --cluster-id j-ABCD'
-        cmdline = self.prefix + args
-
+        find_master_public_dns_patch.return_value = list_instances_result_mock[
+            "Instances"
+        ][0]['PublicDnsName']
+        cmdline = f'{self.prefix} --cluster-id j-ABCD'
         self.run_cmd(cmdline, expected_rc=0)
 
         self.assertEqual(len(self.operations_called), 3)
@@ -272,13 +271,12 @@ class TestDescribeCluster(BaseAWSCommandParamsTest):
     @patch('awscli.customizations.emr.emr.DescribeCluster._call')
     def test_constructed_result(
             self, call_patch, find_most_recently_created_instance_patch):
-        find_most_recently_created_instance_patch.return_value = \
-            list_instances_result_mock['Instances'][0]
-
         call_patch.side_effect = side_effect_of_call
 
-        args = ' --cluster-id j-ABCD'
-        cmdline = self.prefix + args
+        find_most_recently_created_instance_patch.return_value = (
+            list_instances_result_mock['Instances'][0]
+        )
+        cmdline = f'{self.prefix} --cluster-id j-ABCD'
         result = self.run_cmd(cmdline, expected_rc=0)
         result_json = json.loads(result[0])
         self.assertEquals(result_json, EXPECTED_RESULT)

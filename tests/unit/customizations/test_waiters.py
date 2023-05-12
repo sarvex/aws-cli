@@ -155,8 +155,7 @@ class TestWait(BaseAWSCommandParamsTest):
     various services. It is by no means exhaustive.
     """
     def test_ec2_instance_running(self):
-        cmdline = 'ec2 wait instance-running'
-        cmdline += ' --instance-ids i-12345678 i-87654321'
+        cmdline = 'ec2 wait instance-running' + ' --instance-ids i-12345678 i-87654321'
         cmdline += """ --filters {"Name":"group-name","Values":["foobar"]}"""
         result = {'Filters': [{'Name': 'group-name',
                                'Values': ['foobar']}],
@@ -173,15 +172,13 @@ class TestWait(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(cmdline, result)
 
     def test_dynamodb_table_exists(self):
-        cmdline = 'dynamodb wait table-exists'
-        cmdline += ' --table-name mytable'
+        cmdline = 'dynamodb wait table-exists' + ' --table-name mytable'
         result = {"TableName": "mytable"}
         self.parsed_response = {'Table': {'TableStatus': 'ACTIVE'}}
         self.assert_params_for_cmd(cmdline, result)
 
     def test_elastictranscoder_jobs_complete(self):
-        cmdline = 'rds wait db-instance-available'
-        cmdline += ' --db-instance-identifier abc'
+        cmdline = 'rds wait db-instance-available' + ' --db-instance-identifier abc'
         result = {'DBInstanceIdentifier': 'abc'}
         self.parsed_response = {
             'DBInstances': [{

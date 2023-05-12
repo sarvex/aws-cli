@@ -43,13 +43,12 @@ class TestGetStatusCommand(unittest.TestCase):
     def _make_delivery_channel_status(self, name, stream_delivery_status,
                                       history_delivery_status,
                                       snapshot_delivery_status):
-        status = {
+        return {
             'name': 'default',
             'configStreamDeliveryInfo': stream_delivery_status,
             'configHistoryDeliveryInfo': history_delivery_status,
-            'configSnapshotDeliveryInfo': snapshot_delivery_status
+            'configSnapshotDeliveryInfo': snapshot_delivery_status,
         }
-        return status
 
     def test_create_client(self):
         # Set values for the parsed globals.

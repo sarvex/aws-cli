@@ -302,7 +302,7 @@ class CommandArchitectureTest(BaseAWSCommandParamsTest):
         # This ensures that the architecture sets up correctly for a ``cp`` put
         # command.  It is just just a dry run, but all of the components need
         # to be wired correctly for it to work.
-        s3_file = 's3://' + self.bucket + '/' + 'text1.txt'
+        s3_file = f's3://{self.bucket}/text1.txt'
         local_file = self.loc_files[0]
         rel_local_file = os.path.relpath(local_file)
         filters = [['--include', '*']]
@@ -316,7 +316,7 @@ class CommandArchitectureTest(BaseAWSCommandParamsTest):
         cmd_arc.create_instructions()
         self.patch_make_request()
         cmd_arc.run()
-        output_str = "(dryrun) upload: %s to %s" % (rel_local_file, s3_file)
+        output_str = f"(dryrun) upload: {rel_local_file} to {s3_file}"
         self.assertIn(output_str, self.output.getvalue())
 
     def test_error_on_same_line_as_status(self):
@@ -341,16 +341,14 @@ class CommandArchitectureTest(BaseAWSCommandParamsTest):
         cmd_arc.run()
         # Also, we need to verify that the error message is on the *same* line
         # as the upload failed line, to make it easier to track.
-        output_str = (
-            "upload failed: %s to %s A client error" % (
-                rel_local_file, s3_file))
+        output_str = f"upload failed: {rel_local_file} to {s3_file} A client error"
         self.assertIn(output_str, self.err_output.getvalue())
 
     def test_run_cp_get(self):
         # This ensures that the architecture sets up correctly for a ``cp`` get
         # command.  It is just just a dry run, but all of the components need
         # to be wired correctly for it to work.
-        s3_file = 's3://' + self.bucket + '/' + 'text1.txt'
+        s3_file = f's3://{self.bucket}/text1.txt'
         local_file = self.loc_files[0]
         rel_local_file = os.path.relpath(local_file)
         filters = [['--include', '*']]
@@ -367,14 +365,14 @@ class CommandArchitectureTest(BaseAWSCommandParamsTest):
         cmd_arc.create_instructions()
         self.patch_make_request()
         cmd_arc.run()
-        output_str = "(dryrun) download: %s to %s" % (s3_file, rel_local_file)
+        output_str = f"(dryrun) download: {s3_file} to {rel_local_file}"
         self.assertIn(output_str, self.output.getvalue())
 
     def test_run_cp_copy(self):
         # This ensures that the architecture sets up correctly for a ``cp``
         # copy command.  It is just just a dry run, but all of the
         # components need to be wired correctly for it to work.
-        s3_file = 's3://' + self.bucket + '/' + 'text1.txt'
+        s3_file = f's3://{self.bucket}/text1.txt'
         filters = [['--include', '*']]
         params = {'dir_op': False, 'dryrun': True, 'quiet': False,
                   'src': s3_file, 'dest': s3_file, 'filters': filters,
@@ -389,14 +387,14 @@ class CommandArchitectureTest(BaseAWSCommandParamsTest):
         cmd_arc.create_instructions()
         self.patch_make_request()
         cmd_arc.run()
-        output_str = "(dryrun) copy: %s to %s" % (s3_file, s3_file)
+        output_str = f"(dryrun) copy: {s3_file} to {s3_file}"
         self.assertIn(output_str, self.output.getvalue())
 
     def test_run_mv(self):
         # This ensures that the architecture sets up correctly for a ``mv``
         # command.  It is just just a dry run, but all of the components need
         # to be wired correctly for it to work.
-        s3_file = 's3://' + self.bucket + '/' + 'text1.txt'
+        s3_file = f's3://{self.bucket}/text1.txt'
         filters = [['--include', '*']]
         params = {'dir_op': False, 'dryrun': True, 'quiet': False,
                   'src': s3_file, 'dest': s3_file, 'filters': filters,
@@ -411,14 +409,14 @@ class CommandArchitectureTest(BaseAWSCommandParamsTest):
         cmd_arc.create_instructions()
         self.patch_make_request()
         cmd_arc.run()
-        output_str = "(dryrun) move: %s to %s" % (s3_file, s3_file)
+        output_str = f"(dryrun) move: {s3_file} to {s3_file}"
         self.assertIn(output_str, self.output.getvalue())
 
     def test_run_remove(self):
         # This ensures that the architecture sets up correctly for a ``rm``
         # command.  It is just just a dry run, but all of the components need
         # to be wired correctly for it to work.
-        s3_file = 's3://' + self.bucket + '/' + 'text1.txt'
+        s3_file = f's3://{self.bucket}/text1.txt'
         filters = [['--include', '*']]
         params = {'dir_op': False, 'dryrun': True, 'quiet': False,
                   'src': s3_file, 'dest': s3_file, 'filters': filters,
@@ -433,16 +431,16 @@ class CommandArchitectureTest(BaseAWSCommandParamsTest):
         cmd_arc.create_instructions()
         self.patch_make_request()
         cmd_arc.run()
-        output_str = "(dryrun) delete: %s" % s3_file
+        output_str = f"(dryrun) delete: {s3_file}"
         self.assertIn(output_str, self.output.getvalue())
 
     def test_run_sync(self):
         # This ensures that the architecture sets up correctly for a ``sync``
         # command.  It is just just a dry run, but all of the components need
         # to be wired correctly for it to work.
-        s3_file = 's3://' + self.bucket + '/' + 'text1.txt'
+        s3_file = f's3://{self.bucket}/text1.txt'
         local_file = self.loc_files[0]
-        s3_prefix = 's3://' + self.bucket + '/'
+        s3_prefix = f's3://{self.bucket}/'
         local_dir = self.loc_files[3]
         rel_local_file = os.path.relpath(local_file)
         filters = [['--include', '*']]
@@ -462,14 +460,14 @@ class CommandArchitectureTest(BaseAWSCommandParamsTest):
         cmd_arc.set_clients()
         self.patch_make_request()
         cmd_arc.run()
-        output_str = "(dryrun) upload: %s to %s" % (rel_local_file, s3_file)
+        output_str = f"(dryrun) upload: {rel_local_file} to {s3_file}"
         self.assertIn(output_str, self.output.getvalue())
 
     def test_run_mb(self):
         # This ensures that the architecture sets up correctly for a ``rb``
         # command.  It is just just a dry run, but all of the components need
         # to be wired correctly for it to work.
-        s3_prefix = 's3://' + self.bucket + '/'
+        s3_prefix = f's3://{self.bucket}/'
         params = {'dir_op': True, 'dryrun': True, 'quiet': False,
                   'src': s3_prefix, 'dest': s3_prefix, 'paths_type': 's3',
                   'region': 'us-east-1', 'endpoint_url': None,
@@ -478,14 +476,14 @@ class CommandArchitectureTest(BaseAWSCommandParamsTest):
         cmd_arc = CommandArchitecture(self.session, 'mb', params)
         cmd_arc.create_instructions()
         cmd_arc.run()
-        output_str = "(dryrun) make_bucket: %s" % s3_prefix
+        output_str = f"(dryrun) make_bucket: {s3_prefix}"
         self.assertIn(output_str, self.output.getvalue())
 
     def test_run_rb(self):
         # This ensures that the architecture sets up correctly for a ``rb``
         # command.  It is just just a dry run, but all of the components need
         # to be wired correctly for it to work.
-        s3_prefix = 's3://' + self.bucket + '/'
+        s3_prefix = f's3://{self.bucket}/'
         params = {'dir_op': True, 'dryrun': True, 'quiet': False,
                   'src': s3_prefix, 'dest': s3_prefix, 'paths_type': 's3',
                   'region': 'us-east-1', 'endpoint_url': None,
@@ -495,7 +493,7 @@ class CommandArchitectureTest(BaseAWSCommandParamsTest):
         cmd_arc.create_instructions()
         self.patch_make_request()
         rc = cmd_arc.run()
-        output_str = "(dryrun) remove_bucket: %s" % s3_prefix
+        output_str = f"(dryrun) remove_bucket: {s3_prefix}"
         self.assertIn(output_str, self.output.getvalue())
         self.assertEqual(rc, 0)
 
@@ -503,7 +501,7 @@ class CommandArchitectureTest(BaseAWSCommandParamsTest):
         # This ensures that the architecture sets up correctly for a ``rb``
         # command.  It is just just a dry run, but all of the components need
         # to be wired correctly for it to work.
-        s3_prefix = 's3://' + self.bucket + '/'
+        s3_prefix = f's3://{self.bucket}/'
         params = {'dir_op': True, 'dryrun': False, 'quiet': False,
                   'src': s3_prefix, 'dest': s3_prefix, 'paths_type': 's3',
                   'region': 'us-east-1', 'endpoint_url': None,
@@ -514,7 +512,7 @@ class CommandArchitectureTest(BaseAWSCommandParamsTest):
         cmd_arc.create_instructions()
         self.patch_make_request()
         rc = cmd_arc.run()
-        output_str = "remove_bucket failed: %s" % s3_prefix
+        output_str = f"remove_bucket failed: {s3_prefix}"
         self.assertIn(output_str, self.err_output.getvalue())
         self.assertEqual(rc, 1)
 
@@ -542,7 +540,7 @@ class CommandParametersTest(unittest.TestCase):
                 'mv': ['locals3', 's3s3', 's3local'],
                 'rm': ['s3'], 'mb': ['s3'], 'rb': ['s3'],
                 'sync': ['locals3', 's3s3', 's3local']}
-        s3_file = 's3://' + self.bucket + '/' + 'text1.txt'
+        s3_file = f's3://{self.bucket}/text1.txt'
         local_file = self.loc_files[0]
 
         combos = {'s3s3': [s3_file, s3_file],
@@ -552,10 +550,9 @@ class CommandParametersTest(unittest.TestCase):
                   'local': [local_file],
                   'locallocal': [local_file, local_file]}
 
-        for cmd in cmds.keys():
+        for cmd, correct_paths in cmds.items():
             cmd_param = CommandParameters(cmd, {}, '')
             cmd_param.add_region(mock.Mock())
-            correct_paths = cmds[cmd]
             for path_args in correct_paths:
                 cmd_param.check_path_type(combos[path_args])
 
@@ -570,7 +567,7 @@ class CommandParametersTest(unittest.TestCase):
                 'sync': ['local', 'locallocal', 's3'],
                 'mb': ['local', 'locallocal', 's3s3', 'locals3', 's3local'],
                 'rb': ['local', 'locallocal', 's3s3', 'locals3', 's3local']}
-        s3_file = 's3://' + self.bucket + '/' + 'text1.txt'
+        s3_file = f's3://{self.bucket}/text1.txt'
         local_file = self.loc_files[0]
 
         combos = {'s3s3': [s3_file, s3_file],
@@ -580,10 +577,9 @@ class CommandParametersTest(unittest.TestCase):
                   'local': [local_file],
                   'locallocal': [local_file, local_file]}
 
-        for cmd in cmds.keys():
+        for cmd, wrong_paths in cmds.items():
             cmd_param = CommandParameters(cmd, {}, '')
             cmd_param.add_region(mock.Mock())
-            wrong_paths = cmds[cmd]
             for path_args in wrong_paths:
                 with self.assertRaises(TypeError):
                     cmd_param.check_path_type(combos[path_args])
@@ -593,9 +589,9 @@ class CommandParametersTest(unittest.TestCase):
         # does so by testing if s3 objects and and prefixes exist as well as
         # local files and directories.  All of these should not throw an
         # exception.
-        s3_file = 's3://' + self.bucket + '/' + 'text1.txt'
+        s3_file = f's3://{self.bucket}/text1.txt'
         local_file = self.loc_files[0]
-        s3_prefix = 's3://' + self.bucket
+        s3_prefix = f's3://{self.bucket}'
         local_dir = self.loc_files[3]
 
         # :var files: a list of tuples where the first element is a single

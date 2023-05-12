@@ -44,7 +44,7 @@ class TestPutPipelineDefinition(BaseAWSCommandParamsTest):
             f.flush()
             cmdline = self.prefix
             cmdline += ' --pipeline-id name'
-            cmdline += ' --pipeline-definition file://%s' % f.name
+            cmdline += f' --pipeline-definition file://{f.name}'
             result = {
                 'pipelineId': 'name',
                 'pipelineObjects': [
@@ -77,12 +77,15 @@ class TestErrorMessages(BaseAWSCommandParamsTest):
 
     def test_unknown_status(self):
         self.assert_params_for_cmd(
-            self.prefix + ' --pipeline-id foo --status foo',
+            f'{self.prefix} --pipeline-id foo --status foo',
             expected_rc=255,
-            stderr_contains=('Invalid status: foo, must be one of: waiting, '
-                             'pending, cancelled, running, finished, '
-                             'failed, waiting_for_runner, '
-                             'waiting_on_dependencies'))
+            stderr_contains=(
+                'Invalid status: foo, must be one of: waiting, '
+                'pending, cancelled, running, finished, '
+                'failed, waiting_for_runner, '
+                'waiting_on_dependencies'
+            ),
+        )
 
 
 class FakeParsedArgs(object):

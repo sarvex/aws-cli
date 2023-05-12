@@ -29,9 +29,8 @@ class TestGetPasswordData(BaseAWSCommandParamsTest):
         # This is the default response, but we want to be explicit
         # that we're returning an empty dict.
         self.parsed_response = {}
-        args = ' --group-name foo --user-name bar'
-        cmdline = self.prefix + args
         result = {'GroupName': 'foo', 'UserName': 'bar'}
+        cmdline = f'{self.prefix} --group-name foo --user-name bar'
         stdout = self.assert_params_for_cmd(cmdline, result, expected_rc=0)[0]
         # We should have printed nothing because the parsed response
         # is an empty dict: {}.
@@ -71,8 +70,9 @@ class TestListUsers(BaseAWSCommandParamsTest):
 
     def test_jmespath_json_response(self):
         jmespath_query = 'Users[*].UserName'
-        output = self.run_cmd('iam list-users --query %s' % jmespath_query,
-                              expected_rc=0)[0]
+        output = self.run_cmd(
+            f'iam list-users --query {jmespath_query}', expected_rc=0
+        )[0]
         parsed_output = json.loads(output)
         self.assertEqual(parsed_output, ['testuser-50', 'testuser-51'])
 

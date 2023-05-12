@@ -83,9 +83,8 @@ class LaunchKeyArgument(BaseCLIArgument):
             if os.path.isfile(path):
                 self._key_path = path
                 endpoint_prefix = \
-                    self._operation_model.service_model.endpoint_prefix
-                event = 'after-call.%s.%s' % (endpoint_prefix,
-                                              self._operation_model.name)
+                        self._operation_model.service_model.endpoint_prefix
+                event = f'after-call.{endpoint_prefix}.{self._operation_model.name}'
                 self._session.register(event, self._decrypt_password_data)
             else:
                 msg = ('priv-launch-key should be a path to the '

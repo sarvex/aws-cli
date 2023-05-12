@@ -100,7 +100,7 @@ def assume_role_policy(serviceprincipal):
 
 
 def get_service_principal(service, endpoint_host):
-    return service+'.'+_get_suffix(endpoint_host)
+    return f'{service}.{_get_suffix(endpoint_host)}'
 
 
 def _get_suffix(endpoint_host):
@@ -148,29 +148,31 @@ class CreateDefaultRoles(BasicCommand):
     EXAMPLES = BasicCommand.FROM_FILE('emr', 'create-default-roles.rst')
 
     def _run_main(self, parsed_args, parsed_globals):
-        ec2_result = None
         emr_result = None
         self.iam_endpoint_url = parsed_args.iam_endpoint
         region = self._get_region(parsed_globals)
 
         self._check_for_iam_endpoint(region, self.iam_endpoint_url)
         self.emr_endpoint_url = \
-            self._session.create_client(
+                self._session.create_client(
                 'emr',
                 region_name=parsed_globals.region,
                 endpoint_url=parsed_globals.endpoint_url,
                 verify=parsed_globals.verify_ssl).meta.endpoint_url
 
-        LOG.debug('elasticmapreduce endpoint used for resolving'
-                  ' service principal: ' + self.emr_endpoint_url)
+        LOG.debug(
+            f'elasticmapreduce endpoint used for resolving service principal: {self.emr_endpoint_url}'
+        )
 
         # Check if the default EC2 Role for EMR exists.
         role_name = EC2_ROLE_NAME
+        ec2_result = None
         if self._check_if_role_exists(role_name, parsed_globals):
-            LOG.debug('Role ' + role_name + ' exists.')
+            LOG.debug(f'Role {role_name} exists.')
         else:
-            LOG.debug('Role ' + role_name + ' does not exist.'
-                      ' Creating default role for EC2: ' + role_name)
+            LOG.debug(
+                f'Role {role_name} does not exist. Creating default role for EC2: {role_name}'
+            )
             ec2_result = self._create_role_with_role_policy(
                 role_name, role_name, constants.EC2,
                 emrutils.dict_to_string(EC2_ROLE_POLICY),
@@ -180,11 +182,11 @@ class CreateDefaultRoles(BasicCommand):
         instance_profile_name = EC2_ROLE_NAME
         if self._check_if_instance_profile_exists(instance_profile_name,
                                                   parsed_globals):
-            LOG.debug('Instance Profile ' + instance_profile_name + ' exists.')
+            LOG.debug(f'Instance Profile {instance_profile_name} exists.')
         else:
-            LOG.debug('Instance Profile ' + instance_profile_name +
-                      'does not exist. Creating default Instance Profile ' +
-                      instance_profile_name)
+            LOG.debug(
+                f'Instance Profile {instance_profile_name}does not exist. Creating default Instance Profile {instance_profile_name}'
+            )
             self._create_instance_profile_with_role(instance_profile_name,
                                                     instance_profile_name,
                                                     parsed_globals)
@@ -192,10 +194,11 @@ class CreateDefaultRoles(BasicCommand):
         # Check if the default EMR Role exists.
         role_name = EMR_ROLE_NAME
         if self._check_if_role_exists(role_name, parsed_globals):
-            LOG.debug('Role ' + role_name + ' exists.')
+            LOG.debug(f'Role {role_name} exists.')
         else:
-            LOG.debug('Role ' + role_name + ' does not exist.'
-                      ' Creating default role for EMR: ' + role_name)
+            LOG.debug(
+                f'Role {role_name} does not exist. Creating default role for EMR: {role_name}'
+            )
             emr_result = self._create_role_with_role_policy(
                 role_name, role_name, constants.EMR,
                 emrutils.dict_to_string(EMR_ROLE_POLICY),
@@ -244,8 +247,7 @@ class CreateDefaultRoles(BasicCommand):
         try:
             self._call_iam_operation('GetRole', parameters, parsed_globals)
         except Exception as e:
-            role_not_found_msg = 'The role with name ' + role_name +\
-                                 ' cannot be found'
+            role_not_found_msg = f'The role with name {role_name} cannot be found'
             if role_not_found_msg in e.message:
                 # No role error.
                 return False

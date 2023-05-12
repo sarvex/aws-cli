@@ -39,12 +39,11 @@ class Formatter(object):
         # the request id) if there is an error in the response.
         # Since all errors have been unified under the Errors key,
         # this should be a reasonable way to filter.
-        if 'Errors' not in response_data:
-            if 'ResponseMetadata' in response_data:
-                if 'RequestId' in response_data['ResponseMetadata']:
-                    request_id = response_data['ResponseMetadata']['RequestId']
-                    LOG.debug('RequestId: %s', request_id)
-                del response_data['ResponseMetadata']
+        if 'Errors' not in response_data and 'ResponseMetadata' in response_data:
+            if 'RequestId' in response_data['ResponseMetadata']:
+                request_id = response_data['ResponseMetadata']['RequestId']
+                LOG.debug('RequestId: %s', request_id)
+            del response_data['ResponseMetadata']
 
     def _get_default_stream(self):
         return compat.get_stdout_text_writer()
@@ -119,7 +118,7 @@ class TableFormatter(FullyBufferedFormatter):
             self.table = MultiTable(initial_section=False,
                                     column_separator='|', styler=styler)
         else:
-            raise ValueError("Unknown color option: %s" % args.color)
+            raise ValueError(f"Unknown color option: {args.color}")
 
     def _format_response(self, command_name, response, stream):
         if self._build_table(command_name, response):
@@ -269,4 +268,4 @@ def get_formatter(format_type, args):
         return TextFormatter(args)
     elif format_type == 'table':
         return TableFormatter(args)
-    raise ValueError("Unknown output type: %s" % format_type)
+    raise ValueError(f"Unknown output type: {format_type}")

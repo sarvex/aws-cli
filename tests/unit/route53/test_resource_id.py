@@ -54,7 +54,7 @@ class TestChangeResourceRecord(BaseAWSCommandParamsTest):
 
     def test_full_resource_id(self):
         args = ' --hosted-zone-id /change/ZD3IYMVP1KDDM'
-        args += ' --change-batch %s' % CHANGEBATCH_JSON
+        args += f' --change-batch {CHANGEBATCH_JSON}'
         cmdline = self.prefix + args
         expected = {
             "HostedZoneId": "ZD3IYMVP1KDDM",
@@ -88,15 +88,13 @@ class TestGetChange(BaseAWSCommandParamsTest):
         super(TestGetChange, self).setUp()
 
     def test_full_resource_id(self):
-        args = ' --id /change/ZD3IYMVP1KDDM'
-        cmdline = self.prefix + args
         expected = {'Id': 'ZD3IYMVP1KDDM'}
+        cmdline = f'{self.prefix} --id /change/ZD3IYMVP1KDDM'
         self.assert_params_for_cmd(cmdline, expected, expected_rc=0)
 
     def test_short_resource_id(self):
-        args = ' --id ZD3IYMVP1KDDM'
-        cmdline = self.prefix + args
         expected = {'Id': 'ZD3IYMVP1KDDM'}
+        cmdline = f'{self.prefix} --id ZD3IYMVP1KDDM'
         self.assert_params_for_cmd(cmdline, expected, expected_rc=0)
 
 
@@ -125,7 +123,6 @@ class TestMaxItems(BaseAWSCommandParamsTest):
     prefix = 'route53 list-resource-record-sets'
 
     def test_full_resource_id(self):
-        args = ' --hosted-zone-id /hostedzone/ABCD --max-items 1'
-        cmdline = self.prefix + args
         expected = {'HostedZoneId': 'ABCD'}
+        cmdline = f'{self.prefix} --hosted-zone-id /hostedzone/ABCD --max-items 1'
         self.assert_params_for_cmd(cmdline, expected, expected_rc=0)

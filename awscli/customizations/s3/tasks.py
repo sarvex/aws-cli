@@ -36,20 +36,20 @@ def print_operation(filename, failed, dryrun=False):
     """
     print_str = filename.operation_name
     if dryrun:
-        print_str = '(dryrun) ' + print_str
+        print_str = f'(dryrun) {print_str}'
     if failed:
         print_str += " failed"
     print_str += ": "
     if filename.src_type == "s3":
-        print_str = print_str + "s3://" + filename.src
+        print_str = f"{print_str}s3://{filename.src}"
     else:
         print_str += relative_path(filename.src)
     if filename.operation_name not in ["delete", "make_bucket",
                                        "remove_bucket"]:
         if filename.dest_type == "s3":
-            print_str += " to s3://" + filename.dest
+            print_str += f" to s3://{filename.dest}"
         else:
-            print_str += " to " + relative_path(filename.dest)
+            print_str += f" to {relative_path(filename.dest)}"
     return print_str
 
 
@@ -117,11 +117,11 @@ class BasicTask(OrderableTask):
                 message = print_operation(filename, failed,
                                           self.parameters['dryrun'])
                 if error_message is not None:
-                    message += ' ' + error_message
+                    message += f' {error_message}'
                 result = {'message': message, 'error': failed}
                 self.result_queue.put(PrintTask(**result))
         except Exception as e:
-            LOGGER.debug('%s' % str(e))
+            LOGGER.debug(f'{str(e)}')
 
 
 class CopyPartTask(OrderableTask):
@@ -150,17 +150,20 @@ class CopyPartTask(OrderableTask):
             end_range = total_file_size - 1
         else:
             end_range = start_range + self._chunk_size - 1
-        range_param = 'bytes=%s-%s' % (start_range, end_range)
+        range_param = f'bytes={start_range}-{end_range}'
         try:
             LOGGER.debug("Waiting for upload id.")
             upload_id = self._upload_context.wait_for_upload_id()
             bucket, key = find_bucket_key(self._filename.dest)
             src_bucket, src_key = find_bucket_key(self._filename.src)
-            params = {'Bucket': bucket, 'Key': key,
-                      'PartNumber': self._part_number,
-                      'UploadId': upload_id,
-                      'CopySource': '%s/%s' % (src_bucket, src_key),
-                      'CopySourceRange': range_param}
+            params = {
+                'Bucket': bucket,
+                'Key': key,
+                'PartNumber': self._part_number,
+                'UploadId': upload_id,
+                'CopySource': f'{src_bucket}/{src_key}',
+                'CopySourceRange': range_param,
+            }
             response_data = self._filename.client.upload_part_copy(**params)
             etag = response_data['CopyPartResult']['ETag'][1:-1]
             self._upload_context.announce_finished_part(
@@ -355,7 +358,7 @@ class DownloadPartTask(OrderableTask):
             end_range = ''
         else:
             end_range = start_range + self._chunk_size - 1
-        range_param = 'bytes=%s-%s' % (start_range, end_range)
+        range_param = f'bytes={start_range}-{end_range}'
         LOGGER.debug("Downloading bytes range of %s for file %s", range_param,
                      self._filename.dest)
         bucket, key = find_bucket_key(self._filename.src)
@@ -386,8 +389,9 @@ class DownloadPartTask(OrderableTask):
                 LOGGER.debug("Incomplete read detected: %s, (attempt %s / %s)",
                              e, i, self.TOTAL_ATTEMPTS)
                 continue
-        raise RetriesExeededError("Maximum number of attempts exceeded: %s" %
-                                  self.TOTAL_ATTEMPTS)
+        raise RetriesExeededError(
+            f"Maximum number of attempts exceeded: {self.TOTAL_ATTEMPTS}"
+        )
 
     def _queue_writes(self, body):
         self._context.wait_for_file_created()
@@ -419,8 +423,7 @@ class DownloadPartTask(OrderableTask):
 
     def _queue_writes_in_chunks(self, body, iterate_chunk_size):
         amount_read = 0
-        current = body.read(iterate_chunk_size)
-        while current:
+        while current := body.read(iterate_chunk_size):
             offset = self._part_number * self._chunk_size + amount_read
             LOGGER.debug("Submitting IORequest to write queue.")
             self._io_queue.put(
@@ -429,7 +432,6 @@ class DownloadPartTask(OrderableTask):
             )
             LOGGER.debug("Request successfully submitted.")
             amount_read += len(current)
-            current = body.read(iterate_chunk_size)
         # Change log message.
         LOGGER.debug("Done queueing writes for part number %s to file: %s",
                      self._part_number, self._filename.dest)
@@ -606,7 +608,7 @@ class MultipartUploadContext(object):
 
     def wait_for_completion(self):
         with self._upload_complete_condition:
-            while not self._state == self._COMPLETED:
+            while self._state != self._COMPLETED:
                 if self._state == self._CANCELLED:
                     raise UploadCancelledError("Upload has been cancelled.")
                 self._upload_complete_condition.wait(timeout=1)
@@ -710,7 +712,7 @@ class MultipartDownloadContext(object):
 
     def wait_for_file_created(self):
         with self._created_condition:
-            while not self._state == self._STATES['STARTED']:
+            while self._state != self._STATES['STARTED']:
                 if self._state == self._STATES['CANCELLED']:
                     raise DownloadCancelledError(
                         "Download has been cancelled.")
@@ -718,7 +720,7 @@ class MultipartDownloadContext(object):
 
     def wait_for_completion(self):
         with self._completed_condition:
-            while not self._state == self._STATES['COMPLETED']:
+            while self._state != self._STATES['COMPLETED']:
                 if self._state == self._STATES['CANCELLED']:
                     raise DownloadCancelledError(
                         "Download has been cancelled.")

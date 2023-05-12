@@ -95,7 +95,7 @@ def insert_first_element(name):
 
 class PutMetricArgument(CustomArgument):
     def add_to_params(self, parameters, value):
-        method_name = '_add_param_%s' % self.name.replace('-', '_')
+        method_name = f"_add_param_{self.name.replace('-', '_')}"
         return getattr(self, method_name)(parameters, value)
 
     @insert_first_element('MetricData')

@@ -27,22 +27,17 @@ logger = logging.getLogger(__name__)
 # special param file processing.  This is typically because it
 # refers to an actual URI of some sort and we don't want to actually
 # download the content (i.e TemplateURL in cloudformation).
-PARAMFILE_DISABLED = set([
+PARAMFILE_DISABLED = {
     'cloudformation.create-stack.template-url',
     'cloudformation.update-stack.template-url',
     'cloudformation.validate-template.template-url',
     'cloudformation.estimate-template-cost.template-url',
-
     'cloudformation.create-stack.stack-policy-url',
     'cloudformation.update-stack.stack-policy-url',
     'cloudformation.set-stack-policy.stack-policy-url',
-
-    # We will want to change the event name to ``s3`` as opposed to
-    # custom in the near future along with ``s3`` to ``s3api``.
     'custom.cp.website-redirect',
     'custom.mv.website-redirect',
     'custom.sync.website-redirect',
-
     'sqs.add-permission.queue-url',
     'sqs.change-message-visibility.queue-url',
     'sqs.change-message-visibility-batch.queue-url',
@@ -57,14 +52,11 @@ PARAMFILE_DISABLED = set([
     'sqs.send-message-batch.queue-url',
     'sqs.set-queue-attributes.queue-url',
     'sqs.purge-queue.queue-url',
-
     's3.copy-object.website-redirect-location',
     's3.create-multipart-upload.website-redirect-location',
     's3.put-object.website-redirect-location',
-
-    # Double check that this has been renamed!
     'sns.subscribe.notification-endpoint',
-])
+}
 
 
 class ResourceLoadingError(Exception):
@@ -94,13 +86,12 @@ def get_file(prefix, path, mode):
     file_path = os.path.expanduser(file_path)
     file_path = os.path.expandvars(file_path)
     if not os.path.isfile(file_path):
-        raise ResourceLoadingError("file does not exist: %s" % file_path)
+        raise ResourceLoadingError(f"file does not exist: {file_path}")
     try:
         with compat_open(file_path, mode) as f:
             return f.read()
     except (OSError, IOError) as e:
-        raise ResourceLoadingError('Unable to load paramfile %s: %s' % (
-            path, e))
+        raise ResourceLoadingError(f'Unable to load paramfile {path}: {e}')
 
 
 def get_uri(prefix, uri):
@@ -109,11 +100,9 @@ def get_uri(prefix, uri):
         if r.status_code == 200:
             return r.text
         else:
-            raise ResourceLoadingError(
-                "received non 200 status code of %s" % (
-                    r.status_code))
+            raise ResourceLoadingError(f"received non 200 status code of {r.status_code}")
     except Exception as e:
-        raise ResourceLoadingError('Unable to retrieve %s: %s' % (uri, e))
+        raise ResourceLoadingError(f'Unable to retrieve {uri}: {e}')
 
 
 PrefixMap = {'file://': get_file,

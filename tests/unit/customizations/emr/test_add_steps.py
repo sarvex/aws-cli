@@ -96,14 +96,14 @@ class TestAddSteps(BaseAWSCommandParamsTest):
          }
 
     def test_unknown_step_type(self):
-        cmd = self.prefix + 'Type=unknown'
+        cmd = f'{self.prefix}Type=unknown'
         expect_error_msg = '\naws: error: ' + \
-            'The step type unknown is not supported.\n'
+                'The step type unknown is not supported.\n'
         result = self.run_cmd(cmd, 255)
         self.assertEquals(expect_error_msg, result[1])
 
     def test_default_step_type_name_action_on_failure(self):
-        cmd = self.prefix + 'Jar=s3://mybucket/mytest.jar'
+        cmd = f'{self.prefix}Jar=s3://mybucket/mytest.jar'
         result = {
             'JobFlowId': 'j-ABC',
             'Steps': [
@@ -116,9 +116,9 @@ class TestAddSteps(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(cmd, result)
 
     def test_custom_jar_step_missing_jar(self):
-        cmd = self.prefix + 'Name=CustomJarMissingJar'
+        cmd = f'{self.prefix}Name=CustomJarMissingJar'
         expect_error_msg = '\naws: error: The following ' + \
-            'required parameters are missing for CustomJARStepConfig: Jar.\n'
+                'required parameters are missing for CustomJARStepConfig: Jar.\n'
         result = self.run_cmd(cmd, 255)
         self.assertEquals(expect_error_msg, result[1])
 
@@ -150,7 +150,7 @@ class TestAddSteps(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(cmd, result)
 
     def test_streaming_step_with_default_fields(self):
-        cmd = self.prefix + 'Type=Streaming,' + self.STREAMING_ARGS
+        cmd = f'{self.prefix}Type=Streaming,{self.STREAMING_ARGS}'
         result = {
             'JobFlowId': 'j-ABC',
             'Steps': [
@@ -163,9 +163,9 @@ class TestAddSteps(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(cmd, result)
 
     def test_streaming_step_missing_args(self):
-        cmd = self.prefix + 'Type=Streaming'
+        cmd = f'{self.prefix}Type=Streaming'
         expect_error_msg = '\naws: error: The following ' + \
-            'required parameters are missing for StreamingStepConfig: Args.\n'
+                'required parameters are missing for StreamingStepConfig: Args.\n'
         result = self.run_cmd(cmd, 255)
         self.assertEquals(expect_error_msg, result[1])
 
@@ -187,7 +187,7 @@ class TestAddSteps(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(cmd, result)
 
     def test_hive_step_with_default_fields(self):
-        cmd = self.prefix + 'Type=Hive,' + self.HIVE_BASIC_ARGS
+        cmd = f'{self.prefix}Type=Hive,{self.HIVE_BASIC_ARGS}'
         result = {
             'JobFlowId': 'j-ABC',
             'Steps':    [
@@ -199,9 +199,9 @@ class TestAddSteps(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(cmd, result)
 
     def test_hive_step_missing_args(self):
-        cmd = self.prefix + 'Type=Hive'
+        cmd = f'{self.prefix}Type=Hive'
         expect_error_msg = '\naws: error: The following ' + \
-            'required parameters are missing for HiveStepConfig: Args.\n'
+                'required parameters are missing for HiveStepConfig: Args.\n'
         result = self.run_cmd(cmd, 255)
         self.assertEquals(expect_error_msg, result[1])
 
@@ -223,7 +223,7 @@ class TestAddSteps(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(cmd, result)
 
     def test_pig_step_with_default_fields(self):
-        cmd = self.prefix + 'Type=Pig,' + self.PIG_BASIC_ARGS
+        cmd = f'{self.prefix}Type=Pig,{self.PIG_BASIC_ARGS}'
         result = {
             'JobFlowId': 'j-ABC',
             'Steps':    [
@@ -235,9 +235,9 @@ class TestAddSteps(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(cmd, result)
 
     def test_pig_missing_args(self):
-        cmd = self.prefix + 'Type=Pig'
+        cmd = f'{self.prefix}Type=Pig'
         expect_error_msg = '\naws: error: The following ' + \
-            'required parameters are missing for PigStepConfig: Args.\n'
+                'required parameters are missing for PigStepConfig: Args.\n'
         result = self.run_cmd(cmd, 255)
         self.assertEquals(expect_error_msg, result[1])
 
@@ -274,9 +274,9 @@ class TestAddSteps(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(cmd, result)
 
     def test_impala_missing_args(self):
-        cmd = self.prefix + 'Type=Impala'
+        cmd = f'{self.prefix}Type=Impala'
         expect_error_msg = '\naws: error: The following ' + \
-            'required parameters are missing for ImpalaStepConfig: Args.\n'
+                'required parameters are missing for ImpalaStepConfig: Args.\n'
         result = self.run_cmd(cmd, 255)
         self.assertEquals(expect_error_msg, result[1])
 
@@ -299,21 +299,21 @@ class TestAddSteps(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(cmd, result)
 
     def test_empty_step_args(self):
-        cmd = self.prefix + 'Type=Streaming,Args='
+        cmd = f'{self.prefix}Type=Streaming,Args='
         expect_error_msg = ('\naws: error: The prameter Args cannot '
                             'be an empty list.\n')
         result = self.run_cmd(cmd, 255)
         self.assertEquals(expect_error_msg, result[1])
 
-        cmd = self.prefix + 'Type=Pig,Args='
+        cmd = f'{self.prefix}Type=Pig,Args='
         result = self.run_cmd(cmd, 255)
         self.assertEquals(expect_error_msg, result[1])
 
-        cmd = self.prefix + 'Type=Hive,Args='
+        cmd = f'{self.prefix}Type=Hive,Args='
         result = self.run_cmd(cmd, 255)
         self.assertEquals(expect_error_msg, result[1])
 
-        cmd = self.prefix + 'Args='
+        cmd = f'{self.prefix}Args='
         expect_error_msg = ('\naws: error: The following required parameters '
                             'are missing for CustomJARStepConfig: Jar.\n')
         result = self.run_cmd(cmd, 255)
@@ -356,10 +356,10 @@ class TestAddSteps(BaseAWSCommandParamsTest):
     def test_all_step_types_from_json(self):
         data_path = os.path.join(
             os.path.dirname(__file__), 'input_steps.json')
-        cmd = self.prefix + 'file://' + data_path
+        cmd = f'{self.prefix}file://{data_path}'
         hive_hadoop_jar_step = copy.deepcopy(self.HIVE_DEFAULT_HADOOP_JAR_STEP)
         hive_hadoop_jar_step['Args'] += \
-            ['-d',
+                ['-d',
              'INPUT=s3://elasticmapreduce/samples/hive-ads/tables',
              '-d',
              'OUTPUT=s3://mybucket/hive-ads/output/2014-04-18/11-07-32',
@@ -368,7 +368,7 @@ class TestAddSteps(BaseAWSCommandParamsTest):
              ]
         pig_hadoop_jar_step = copy.deepcopy(self.PIG_DEFAULT_HADOOP_JAR_STEP)
         pig_hadoop_jar_step['Args'] += \
-            ['-p',
+                ['-p',
              'INPUT=s3://elasticmapreduce/samples/pig-apache/input',
              '-p',
              'OUTPUT=s3://mybucket/pig-apache/output/2014-04-21/20-09-28'

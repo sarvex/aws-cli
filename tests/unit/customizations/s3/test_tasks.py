@@ -61,8 +61,9 @@ class TestMultipartUploadContext(unittest.TestCase):
             self.calls.append(('upload_part', part_number, upload_id))
         # Then it would call UploadPart here.
         # Then it would announce that it's finished with a part.
-        self.context.announce_finished_part(etag='etag%s' % part_number,
-                                            part_number=part_number)
+        self.context.announce_finished_part(
+            etag=f'etag{part_number}', part_number=part_number
+        )
 
     def complete_upload(self):
         try:
@@ -242,10 +243,10 @@ class TestMultipartUploadContext(unittest.TestCase):
                                 args=('my_upload_id',)),
                 threading.Thread(target=self.wait_for_upload_complete),
             ]
-            for i in range(1, expected_parts + 1):
-                all_threads.append(
-                    threading.Thread(target=self.upload_part, args=(i,))
-                )
+            all_threads.extend(
+                threading.Thread(target=self.upload_part, args=(i,))
+                for i in range(1, expected_parts + 1)
+            )
             random.shuffle(all_threads)
             for thread in all_threads:
                 self.start_thread(thread)

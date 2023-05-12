@@ -101,9 +101,7 @@ def build_hive_step(parsed_step, region=None):
         emrutils.build_s3_link(
             relative_path=constants.HIVE_SCRIPT_PATH, region=region),
         constants.RUN_HIVE_SCRIPT]
-    args_list.append(constants.HIVE_VERSIONS)
-    args_list.append(constants.LATEST)
-    args_list.append(constants.ARGS)
+    args_list.extend((constants.HIVE_VERSIONS, constants.LATEST, constants.ARGS))
     args_list += args
 
     return emrutils.build_step(
@@ -129,9 +127,7 @@ def build_pig_step(parsed_step, region=None):
         emrutils.build_s3_link(
             relative_path=constants.PIG_SCRIPT_PATH, region=region),
         constants.RUN_PIG_SCRIPT]
-    args_list.append(constants.PIG_VERSIONS)
-    args_list.append(constants.LATEST)
-    args_list.append(constants.ARGS)
+    args_list.extend((constants.PIG_VERSIONS, constants.LATEST, constants.ARGS))
     args_list += args
 
     return emrutils.build_step(

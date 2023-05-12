@@ -32,10 +32,7 @@ class TestSaveFile(unittest.TestCase):
         etag = md5()
         etag.update(b'foobar')
         etag = etag.hexdigest()
-        self.response_data = {
-            'Body': six.BytesIO(b'foobar'),
-            'ETag': '"%s"' % etag,
-        }
+        self.response_data = {'Body': six.BytesIO(b'foobar'), 'ETag': f'"{etag}"'}
         self.last_update = datetime.now()
 
     def tearDown(self):

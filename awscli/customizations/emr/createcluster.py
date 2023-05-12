@@ -102,36 +102,34 @@ class CreateCluster(BasicCommand):
     EXAMPLES = BasicCommand.FROM_FILE('emr', 'create-cluster-examples.rst')
 
     def _run_main(self, parsed_args, parsed_globals):
-        params = {}
         bootstrap_actions = []
-        params['Name'] = parsed_args.name
-
+        params = {'Name': parsed_args.name}
         service_role_validation_message = (
             " Either choose --use-default-roles or use both --service-role "
             "<roleName> and --ec2-attributes InstanceProfile=<profileName>.")
 
         if parsed_args.use_default_roles is True and \
-                parsed_args.service_role is not None:
+                    parsed_args.service_role is not None:
                 raise exceptions.MutualExclusiveOptionError(
                     option1="--use-default-roles",
                     option2="--service-role",
                     message=service_role_validation_message)
 
         if parsed_args.use_default_roles is True and \
-                parsed_args.ec2_attributes is not None and \
-                'InstanceProfile' in parsed_args.ec2_attributes:
+                    parsed_args.ec2_attributes is not None and \
+                    'InstanceProfile' in parsed_args.ec2_attributes:
                 raise exceptions.MutualExclusiveOptionError(
                     option1="--use-default-roles",
                     option2="--ec2-attributes InstanceProfile",
                     message=service_role_validation_message)
 
-        instances_config = {}
-        instances_config['InstanceGroups'] = \
-            instancegroupsutils.validate_and_build_instance_groups(
+        instances_config = {
+            'InstanceGroups': instancegroupsutils.validate_and_build_instance_groups(
                 instance_groups=parsed_args.instance_groups,
                 instance_type=parsed_args.instance_type,
-                instance_count=parsed_args.instance_count)
-
+                instance_count=parsed_args.instance_count,
+            )
+        }
         is_valid_ami_version = re.match('\d?\..*', parsed_args.ami_version)
         if is_valid_ami_version is None:
             raise exceptions.InvalidAmiVersionError(
@@ -155,14 +153,14 @@ class CreateCluster(BasicCommand):
             parsed_args.no_auto_terminate = True
 
         instances_config['KeepJobFlowAliveWhenNoSteps'] = \
-            emrutils.apply_boolean_options(
+                emrutils.apply_boolean_options(
                 parsed_args.no_auto_terminate,
                 '--no-auto-terminate',
                 parsed_args.auto_terminate,
                 '--auto-terminate')
 
         instances_config['TerminationProtected'] = \
-            emrutils.apply_boolean_options(
+                emrutils.apply_boolean_options(
                 parsed_args.termination_protected,
                 '--termination-protected',
                 parsed_args.no_termination_protected,
@@ -174,7 +172,7 @@ class CreateCluster(BasicCommand):
             parsed_args.visible_to_all_users = True
 
         params['VisibleToAllUsers'] = \
-            emrutils.apply_boolean_options(
+                emrutils.apply_boolean_options(
                 parsed_args.visible_to_all_users,
                 '--visible-to-all-users',
                 parsed_args.no_visible_to_all_users,
@@ -236,7 +234,7 @@ class CreateCluster(BasicCommand):
         if parsed_args.emrfs is not None:
             emr_fs_ba_args = self._build_emr_fs_args(parsed_args.emrfs)
             emr_fs_ba_config = \
-                emrutils.build_bootstrap_action(
+                    emrutils.build_bootstrap_action(
                     path=emrutils.build_s3_link(
                         relative_path=constants.CONFIG_HADOOP_PATH,
                         region=parsed_globals.region),
@@ -271,10 +269,7 @@ class CreateCluster(BasicCommand):
         if run_job_flow_result is not None:
                 jobFlowId = run_job_flow_result.get('JobFlowId')
 
-        if jobFlowId is not None:
-            return {'ClusterId': jobFlowId}
-        else:
-            return {}
+        return {'ClusterId': jobFlowId} if jobFlowId is not None else {}
 
     def _build_ec2_attributes(self, cluster, parsed_attrs):
         keys = parsed_attrs.keys()
@@ -290,7 +285,7 @@ class CreateCluster(BasicCommand):
             dest_params=instances, dest_key='Ec2SubnetId')
 
         if 'AvailabilityZone' in keys:
-            instances['Placement'] = dict()
+            instances['Placement'] = {}
             emrutils.apply_params(
                 src_params=parsed_attrs, src_key='AvailabilityZone',
                 dest_params=instances['Placement'],
@@ -328,16 +323,16 @@ class CreateCluster(BasicCommand):
 
         bootstrap_actions = []
         if len(cluster_ba_list) + len(parsed_boostrap_actions) \
-                > constants.MAX_BOOTSTRAP_ACTION_NUMBER:
+                    > constants.MAX_BOOTSTRAP_ACTION_NUMBER:
             raise ValueError('aws: error: maximum number of '
                              'bootstrap actions for a cluster exceeded.')
 
         for ba in parsed_boostrap_actions:
-            ba_config = {}
-            if ba.get('Name') is not None:
-                ba_config['Name'] = ba.get('Name')
-            else:
-                ba_config['Name'] = constants.BOOTSTRAP_ACTION_NAME
+            ba_config = {
+                'Name': ba.get('Name')
+                if ba.get('Name') is not None
+                else constants.BOOTSTRAP_ACTION_NAME
+            }
             script_arg_config = {}
             emrutils.apply_params(
                 src_params=ba, src_key='Path',
@@ -379,25 +374,25 @@ class CreateCluster(BasicCommand):
 
         specified_apps = set([])
         if parsed_args.applications is not None:
-            specified_apps = \
-                set([app['Name'].lower() for app in parsed_args.applications])
+            specified_apps = {app['Name'].lower() for app in parsed_args.applications}
 
         missing_apps = self._get_missing_applications_for_steps(specified_apps,
                                                                 parsed_args)
         # Check for HBase.
-        if parsed_args.restore_from_hbase_backup is not None:
-            if constants.HBASE not in specified_apps:
-                missing_apps.add(constants.HBASE.title())
+        if (
+            parsed_args.restore_from_hbase_backup is not None
+            and constants.HBASE not in specified_apps
+        ):
+            missing_apps.add(constants.HBASE.title())
 
         if len(missing_apps) != 0:
             raise exceptions.MissingApplicationsError(
                 applications=missing_apps)
 
     def _get_missing_applications_for_steps(self, specified_apps, parsed_args):
-        allowed_app_steps = set([constants.HIVE, constants.PIG,
-                                 constants.IMPALA])
         missing_apps = set([])
         if parsed_args.steps is not None:
+            allowed_app_steps = {constants.HIVE, constants.PIG, constants.IMPALA}
             for step in parsed_args.steps:
                 if len(missing_apps) == len(allowed_app_steps):
                     break
@@ -406,39 +401,45 @@ class CreateCluster(BasicCommand):
                 if step_type is not None:
                     step_type = step_type.lower()
                     if step_type in allowed_app_steps and \
-                            step_type not in specified_apps:
+                                step_type not in specified_apps:
                         missing_apps.add(step['Type'].title())
         return missing_apps
 
     def _build_emr_fs_args(self, parsed_emr_fs):
         args = []
         if parsed_emr_fs.get('Consistent') is not None:
-            args.append(constants.EMR_FS_BA_ARG_KEY)
-            args.append(
-                constants.EMR_FS_CONSISTENT_KEY +
-                '=' + str(parsed_emr_fs.get('Consistent')).lower())
-
+            args.extend(
+                (
+                    constants.EMR_FS_BA_ARG_KEY,
+                    f'{constants.EMR_FS_CONSISTENT_KEY}='
+                    + str(parsed_emr_fs.get('Consistent')).lower(),
+                )
+            )
         if parsed_emr_fs.get('SSE') is not None:
-            args.append(constants.EMR_FS_BA_ARG_KEY)
-            args.append(
-                constants.EMR_FS_SSE_KEY + '=' +
-                str(parsed_emr_fs.get('SSE')).lower())
-
+            args.extend(
+                (
+                    constants.EMR_FS_BA_ARG_KEY,
+                    f'{constants.EMR_FS_SSE_KEY}='
+                    + str(parsed_emr_fs.get('SSE')).lower(),
+                )
+            )
         if parsed_emr_fs.get('RetryCount') is not None:
-            args.append(constants.EMR_FS_BA_ARG_KEY)
-            args.append(
-                constants.EMR_FS_RETRY_COUNT_KEY + '=' +
-                str(parsed_emr_fs.get('RetryCount')))
-
+            args.extend(
+                (
+                    constants.EMR_FS_BA_ARG_KEY,
+                    f'{constants.EMR_FS_RETRY_COUNT_KEY}='
+                    + str(parsed_emr_fs.get('RetryCount')),
+                )
+            )
         if parsed_emr_fs.get('RetryPeriod') is not None:
-            args.append(constants.EMR_FS_BA_ARG_KEY)
-            args.append(
-                constants.EMR_FS_RETRY_PERIOD_KEY + '=' +
-                str(parsed_emr_fs.get('RetryPeriod')))
-
+            args.extend(
+                (
+                    constants.EMR_FS_BA_ARG_KEY,
+                    f'{constants.EMR_FS_RETRY_PERIOD_KEY}='
+                    + str(parsed_emr_fs.get('RetryPeriod')),
+                )
+            )
         if parsed_emr_fs.get('Args') is not None:
             for arg in parsed_emr_fs.get('Args'):
-                args.append(constants.EMR_FS_BA_ARG_KEY)
-                args.append(arg)
-
+                args.extend((constants.EMR_FS_BA_ARG_KEY, arg))
         return args

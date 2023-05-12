@@ -43,20 +43,36 @@ class Socks(BasicCommand):
             key_file = parsed_args.key_pair_file
             sshutils.validate_ssh_with_key_file(key_file)
             f = tempfile.NamedTemporaryFile(delete=False)
-            if (sshutils.check_command_key_format(key_file, ['cer', 'pem']) and
-                    (emrutils.which('ssh') or emrutils.which('ssh.exe'))):
-                command = ['ssh', '-o', 'StrictHostKeyChecking=no', '-o',
-                           'ServerAliveInterval=10', '-ND', '8157', '-i',
-                           parsed_args.key_pair_file, constants.SSH_USER +
-                           '@' + master_dns]
-            else:
-                command = ['putty', '-ssh', '-i', parsed_args.key_pair_file,
-                           constants.SSH_USER + '@' + master_dns, '-N', '-D',
-                           '8157']
-
+            command = (
+                [
+                    'ssh',
+                    '-o',
+                    'StrictHostKeyChecking=no',
+                    '-o',
+                    'ServerAliveInterval=10',
+                    '-ND',
+                    '8157',
+                    '-i',
+                    parsed_args.key_pair_file,
+                    f'{constants.SSH_USER}@{master_dns}',
+                ]
+                if (
+                    sshutils.check_command_key_format(key_file, ['cer', 'pem'])
+                    and (emrutils.which('ssh') or emrutils.which('ssh.exe'))
+                )
+                else [
+                    'putty',
+                    '-ssh',
+                    '-i',
+                    parsed_args.key_pair_file,
+                    f'{constants.SSH_USER}@{master_dns}',
+                    '-N',
+                    '-D',
+                    '8157',
+                ]
+            )
             print(' '.join(command))
-            rc = subprocess.call(command)
-            return rc
+            return subprocess.call(command)
         except KeyboardInterrupt:
             print('Disabling Socks Tunnel.')
             return 0
@@ -92,14 +108,18 @@ class SSH(BasicCommand):
             if parsed_args.command:
                 command.append(parsed_args.command)
         else:
-            command = ['putty', '-ssh', '-i', parsed_args.key_pair_file,
-                       constants.SSH_USER + '@' + master_dns, '-t']
+            command = [
+                'putty',
+                '-ssh',
+                '-i',
+                parsed_args.key_pair_file,
+                f'{constants.SSH_USER}@{master_dns}',
+                '-t',
+            ]
             if parsed_args.command:
                 f.write(parsed_args.command)
                 f.write('\nread -n1 -r -p "Command completed. Press any key."')
-                command.append('-m')
-                command.append(f.name)
-
+                command.extend(('-m', f.name))
         f.close()
         print(' '.join(command))
         rc = subprocess.call(command)
@@ -130,21 +150,33 @@ class Put(BasicCommand):
         sshutils.validate_scp_with_key_file(key_file)
         if (sshutils.check_command_key_format(key_file, ['cer', 'pem']) and
                 (emrutils.which('scp') or emrutils.which('scp.exe'))):
-            command = ['scp', '-r', '-o StrictHostKeyChecking=no',
-                       '-i', parsed_args.key_pair_file, parsed_args.src,
-                       constants.SSH_USER + '@' + master_dns]
+            command = [
+                'scp',
+                '-r',
+                '-o StrictHostKeyChecking=no',
+                '-i',
+                parsed_args.key_pair_file,
+                parsed_args.src,
+                f'{constants.SSH_USER}@{master_dns}',
+            ]
         else:
-            command = ['pscp', '-scp', '-r', '-i', parsed_args.key_pair_file,
-                       parsed_args.src, constants.SSH_USER + '@' + master_dns]
+            command = [
+                'pscp',
+                '-scp',
+                '-r',
+                '-i',
+                parsed_args.key_pair_file,
+                parsed_args.src,
+                f'{constants.SSH_USER}@{master_dns}',
+            ]
 
         # if the instance is not terminated
         if parsed_args.dest:
-            command[-1] = command[-1] + ":" + parsed_args.dest
+            command[-1] = f"{command[-1]}:{parsed_args.dest}"
         else:
-            command[-1] = command[-1] + ":" + parsed_args.src.split('/')[-1]
+            command[-1] = f"{command[-1]}:" + parsed_args.src.split('/')[-1]
         print(' '.join(command))
-        rc = subprocess.call(command)
-        return rc
+        return subprocess.call(command)
 
 
 class Get(BasicCommand):
@@ -170,18 +202,27 @@ class Get(BasicCommand):
         sshutils.validate_scp_with_key_file(key_file)
         if (sshutils.check_command_key_format(key_file, ['cer', 'pem']) and
                 (emrutils.which('scp') or emrutils.which('scp.exe'))):
-            command = ['scp', '-r', '-o StrictHostKeyChecking=no', '-i',
-                       parsed_args.key_pair_file, constants.SSH_USER + '@' +
-                       master_dns + ':' + parsed_args.src]
+            command = [
+                'scp',
+                '-r',
+                '-o StrictHostKeyChecking=no',
+                '-i',
+                parsed_args.key_pair_file,
+                f'{constants.SSH_USER}@{master_dns}:{parsed_args.src}',
+            ]
         else:
-            command = ['pscp', '-scp', '-r', '-i', parsed_args.key_pair_file,
-                       constants.SSH_USER + '@' + master_dns + ':' +
-                       parsed_args.src]
+            command = [
+                'pscp',
+                '-scp',
+                '-r',
+                '-i',
+                parsed_args.key_pair_file,
+                f'{constants.SSH_USER}@{master_dns}:{parsed_args.src}',
+            ]
 
         if parsed_args.dest:
             command.append(parsed_args.dest)
         else:
             command.append(parsed_args.src.split('/')[-1])
         print(' '.join(command))
-        rc = subprocess.call(command)
-        return rc
+        return subprocess.call(command)

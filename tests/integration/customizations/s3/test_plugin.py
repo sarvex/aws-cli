@@ -71,8 +71,7 @@ class TestMoveCommand(BaseS3CLICommand):
     def test_mv_local_to_s3(self):
         bucket_name = self.create_bucket()
         full_path = self.files.create_file('foo.txt', 'this is foo.txt')
-        p = aws('s3 mv %s s3://%s/foo.txt' % (full_path,
-                                              bucket_name))
+        p = aws(f's3 mv {full_path} s3://{bucket_name}/foo.txt')
         self.assert_no_errors(p)
         # When we move an object, the local file is gone:
         self.assertTrue(not os.path.exists(full_path))
@@ -85,7 +84,7 @@ class TestMoveCommand(BaseS3CLICommand):
         self.put_object(bucket_name, 'foo.txt', 'this is foo.txt')
         full_path = self.files.full_path('foo.txt')
         self.assertTrue(self.key_exists(bucket_name, key_name='foo.txt'))
-        p = aws('s3 mv s3://%s/foo.txt %s' % (bucket_name, full_path))
+        p = aws(f's3 mv s3://{bucket_name}/foo.txt {full_path}')
         self.assert_no_errors(p)
         self.assertTrue(os.path.exists(full_path))
         with open(full_path, 'r') as f:
@@ -98,8 +97,7 @@ class TestMoveCommand(BaseS3CLICommand):
         to_bucket = self.create_bucket()
         self.put_object(from_bucket, 'foo.txt', 'this is foo.txt')
 
-        p = aws('s3 mv s3://%s/foo.txt s3://%s/foo.txt' % (from_bucket,
-                                                           to_bucket))
+        p = aws(f's3 mv s3://{from_bucket}/foo.txt s3://{to_bucket}/foo.txt')
         self.assert_no_errors(p)
         contents = self.get_key_contents(to_bucket, 'foo.txt')
         self.assertEqual(contents, 'this is foo.txt')
@@ -112,8 +110,7 @@ class TestMoveCommand(BaseS3CLICommand):
         file_contents = six.BytesIO(b'abcd' * (1024 * 1024 * 10))
         self.put_object(from_bucket, 'foo.txt', file_contents)
 
-        p = aws('s3 mv s3://%s/foo.txt s3://%s/foo.txt' % (from_bucket,
-                                                           to_bucket))
+        p = aws(f's3 mv s3://{from_bucket}/foo.txt s3://{to_bucket}/foo.txt')
         self.assert_no_errors(p)
         self.assert_key_contents_equal(to_bucket, 'foo.txt', file_contents)
         # And verify that the object no longer exists in the from_bucket.
@@ -128,8 +125,7 @@ class TestMoveCommand(BaseS3CLICommand):
         self.put_object(from_bucket, 'largefile', large_file_contents)
         self.put_object(from_bucket, 'smallfile', small_file_contents)
 
-        p = aws('s3 mv s3://%s/ s3://%s/ --recursive' % (from_bucket,
-                                                         to_bucket))
+        p = aws(f's3 mv s3://{from_bucket}/ s3://{to_bucket}/ --recursive')
         self.assert_no_errors(p)
         # Nothing's in the from_bucket.
         self.assertTrue(not self.key_exists(from_bucket,
@@ -153,7 +149,7 @@ class TestMoveCommand(BaseS3CLICommand):
         file_contents = six.BytesIO(b'abcd' * (1024 * 1024 * 10))
         foo_txt = self.files.create_file(
             'foo.txt', file_contents.getvalue().decode('utf-8'))
-        p = aws('s3 mv %s s3://%s/foo.txt' % (foo_txt, bucket_name))
+        p = aws(f's3 mv {foo_txt} s3://{bucket_name}/foo.txt')
         self.assert_no_errors(p)
         # When we move an object, the local file is gone:
         self.assertTrue(not os.path.exists(foo_txt))
@@ -161,7 +157,7 @@ class TestMoveCommand(BaseS3CLICommand):
         self.assert_key_contents_equal(bucket_name, 'foo.txt', file_contents)
 
         # Now verify we can download this file.
-        p = aws('s3 mv s3://%s/foo.txt %s' % (bucket_name, foo_txt))
+        p = aws(f's3 mv s3://{bucket_name}/foo.txt {foo_txt}')
         self.assert_no_errors(p)
         self.assertTrue(os.path.exists(foo_txt))
         self.assertEqual(os.path.getsize(foo_txt),
@@ -169,7 +165,7 @@ class TestMoveCommand(BaseS3CLICommand):
 
     def test_mv_to_nonexistent_bucket(self):
         full_path = self.files.create_file('foo.txt', 'this is foo.txt')
-        p = aws('s3 mv %s s3://bad-noexist-13143242/foo.txt' % (full_path,))
+        p = aws(f's3 mv {full_path} s3://bad-noexist-13143242/foo.txt')
         self.assertEqual(p.rc, 1)
 
     def test_cant_move_file_onto_itself_small_file(self):
@@ -177,8 +173,7 @@ class TestMoveCommand(BaseS3CLICommand):
         # immediately validate that we can't move a file onto itself.
         bucket_name = self.create_bucket()
         self.put_object(bucket_name, key_name='key.txt', contents='foo')
-        p = aws('s3 mv s3://%s/key.txt s3://%s/key.txt' %
-                (bucket_name, bucket_name))
+        p = aws(f's3 mv s3://{bucket_name}/key.txt s3://{bucket_name}/key.txt')
         self.assertEqual(p.rc, 255)
         self.assertIn('Cannot mv a file onto itself', p.stderr)
 
@@ -191,8 +186,7 @@ class TestMoveCommand(BaseS3CLICommand):
         bucket_name = self.create_bucket()
         self.put_object(bucket_name, key_name='key.txt',
                         contents=file_contents)
-        p = aws('s3 mv s3://%s/key.txt s3://%s/key.txt' %
-                (bucket_name, bucket_name))
+        p = aws(f's3 mv s3://{bucket_name}/key.txt s3://{bucket_name}/key.txt')
         self.assertEqual(p.rc, 255)
         self.assertIn('Cannot mv a file onto itself', p.stderr)
 
@@ -200,9 +194,6 @@ class TestMoveCommand(BaseS3CLICommand):
 class TestRm(BaseS3CLICommand):
     @unittest.skipIf(platform.system() not in ['Darwin', 'Linux'],
                      'Newline in filename test not valid on windows.')
-    # Windows won't let you do this.  You'll get:
-    # [Errno 22] invalid mode ('w') or filename:
-    # 'c:\\windows\\temp\\tmp0fv8uu\\foo\r.txt'
     def test_rm_with_newlines(self):
         bucket_name = self.create_bucket()
 
@@ -215,7 +206,7 @@ class TestRm(BaseS3CLICommand):
         self.assertTrue(self.key_exists(bucket_name, key_name='foo\r.txt'))
 
         # Then delete the file.
-        p = aws('s3 rm s3://%s/ --recursive' % (bucket_name,))
+        p = aws(f's3 rm s3://{bucket_name}/ --recursive')
 
         # And verify it's gone.
         self.assertFalse(self.key_exists(bucket_name, key_name='foo\r.txt'))
@@ -224,7 +215,7 @@ class TestRm(BaseS3CLICommand):
         bucket_name = self.create_bucket()
         self.put_object(bucket_name, 'foo.txt', contents='hello world')
         self.put_object(bucket_name, 'bar.txt', contents='hello world2')
-        p = aws('s3 rm s3://%s/ --recursive --page-size 1' % bucket_name)
+        p = aws(f's3 rm s3://{bucket_name}/ --recursive --page-size 1')
         self.assert_no_errors(p)
 
         self.assertFalse(self.key_exists(bucket_name, key_name='foo.txt'))
@@ -241,7 +232,7 @@ class TestCp(BaseS3CLICommand):
 
         # copy file into bucket.
         foo_txt = self.files.create_file('foo.txt', 'this is foo.txt')
-        p = aws('s3 cp %s s3://%s/foo.txt' % (foo_txt, bucket_name))
+        p = aws(f's3 cp {foo_txt} s3://{bucket_name}/foo.txt')
         self.assert_no_errors(p)
 
         # Make sure object is in bucket.
@@ -256,7 +247,7 @@ class TestCp(BaseS3CLICommand):
 
         # Make a new name for the file and copy it locally.
         full_path = self.files.full_path('bar.txt')
-        p = aws('s3 cp s3://%s/foo.txt %s' % (bucket_name, full_path))
+        p = aws(f's3 cp s3://{bucket_name}/foo.txt {full_path}')
         self.assert_no_errors(p)
 
         with open(full_path, 'r') as f:
@@ -270,7 +261,7 @@ class TestCp(BaseS3CLICommand):
         # copy file into bucket.
         foo_txt = self.files.create_file('foo.txt', 'this is foo.txt')
         # Note that the destination has no trailing slash.
-        p = aws('s3 cp %s s3://%s' % (foo_txt, bucket_name))
+        p = aws(f's3 cp {foo_txt} s3://{bucket_name}')
         self.assert_no_errors(p)
 
         # Make sure object is in bucket.
@@ -285,8 +276,7 @@ class TestCp(BaseS3CLICommand):
         file_contents = six.BytesIO(b'abcd' * (1024 * 1024 * 10))
         self.put_object(from_bucket, 'foo.txt', file_contents)
 
-        p = aws('s3 cp s3://%s/foo.txt s3://%s/foo.txt' %
-                (from_bucket, to_bucket))
+        p = aws(f's3 cp s3://{from_bucket}/foo.txt s3://{to_bucket}/foo.txt')
         self.assert_no_errors(p)
         self.assert_key_contents_equal(to_bucket, 'foo.txt', file_contents)
         self.assertTrue(self.key_exists(from_bucket, key_name='foo.txt'))
@@ -294,7 +284,7 @@ class TestCp(BaseS3CLICommand):
     def test_guess_mime_type(self):
         bucket_name = self.create_bucket()
         bar_png = self.files.create_file('bar.jpeg', 'fake png image')
-        p = aws('s3 cp %s s3://%s/bar.jpeg' % (bar_png, bucket_name))
+        p = aws(f's3 cp {bar_png} s3://{bucket_name}/bar.jpeg')
         self.assert_no_errors(p)
 
         # We should have correctly guessed the content type based on the
@@ -310,7 +300,7 @@ class TestCp(BaseS3CLICommand):
         self.put_object(bucket_name, key_name='foo.txt',
                         contents=foo_contents)
         local_foo_txt = self.files.full_path('foo.txt')
-        p = aws('s3 cp s3://%s/foo.txt %s' % (bucket_name, local_foo_txt))
+        p = aws(f's3 cp s3://{bucket_name}/foo.txt {local_foo_txt}')
         self.assert_no_errors(p)
         self.assertEqual(os.path.getsize(local_foo_txt),
                          len(foo_contents.getvalue()))
@@ -323,8 +313,10 @@ class TestCp(BaseS3CLICommand):
         self.put_object(bucket_name, key_name='foo.txt',
                         contents=foo_contents)
         local_foo_txt = self.files.full_path('foo.txt')
-        process = aws('s3 cp s3://%s/foo.txt %s' %
-                      (bucket_name, local_foo_txt), wait_for_finish=False)
+        process = aws(
+            f's3 cp s3://{bucket_name}/foo.txt {local_foo_txt}',
+            wait_for_finish=False,
+        )
         # Give it some time to start up and enter it's main task loop.
         time.sleep(1)
         # The process has 60 seconds to finish after being sent a Ctrl+C,
@@ -347,13 +339,13 @@ class TestCp(BaseS3CLICommand):
 
     def test_cp_to_nonexistent_bucket(self):
         foo_txt = self.files.create_file('foo.txt', 'this is foo.txt')
-        p = aws('s3 cp %s s3://noexist-bucket-foo-bar123/foo.txt' % (foo_txt,))
+        p = aws(f's3 cp {foo_txt} s3://noexist-bucket-foo-bar123/foo.txt')
         self.assertEqual(p.rc, 1)
 
     def test_cp_empty_file(self):
         bucket_name = self.create_bucket()
         foo_txt = self.files.create_file('foo.txt', contents='')
-        p = aws('s3 cp %s s3://%s/' % (foo_txt, bucket_name))
+        p = aws(f's3 cp {foo_txt} s3://{bucket_name}/')
         self.assertEqual(p.rc, 0)
         self.assertNotIn('failed', p.stderr)
         self.assertTrue(self.key_exists(bucket_name, 'foo.txt'))
@@ -377,8 +369,9 @@ class TestCp(BaseS3CLICommand):
         self.put_object(bucket_name, object_name, contents,
                         extra_args=extra_args)
         local_filename = self.files.full_path('foo.txt')
-        p = aws('s3 cp s3://%s/%s %s --region eu-central-1' %
-                (bucket_name, object_name, local_filename))
+        p = aws(
+            f's3 cp s3://{bucket_name}/{object_name} {local_filename} --region eu-central-1'
+        )
         self.assertEqual(p.rc, 0)
         # Assert that the file was downloaded properly.
         with open(local_filename, 'r') as f:
@@ -388,8 +381,9 @@ class TestCp(BaseS3CLICommand):
         bucket_name = self.create_bucket()
         foo_txt = self.files.create_file('foo.txt', 'bar')
         website_redirect = 'http://someserver'
-        p = aws('s3 cp %s s3://%s/foo.txt --website-redirect %s' %
-                (foo_txt, bucket_name, website_redirect))
+        p = aws(
+            f's3 cp {foo_txt} s3://{bucket_name}/foo.txt --website-redirect {website_redirect}'
+        )
         self.assert_no_errors(p)
 
         # Ensure that the web address is used as opposed to the contents
@@ -404,11 +398,10 @@ class TestCp(BaseS3CLICommand):
         num_mb = 200
         foo_txt = self.files.create_file('foo.txt', '')
         with open(foo_txt, 'wb') as f:
-            for i in range(num_mb):
+            for _ in range(num_mb):
                 f.write(b'a' * 1024 * 1024)
 
-        p = aws('s3 cp %s s3://%s/ --region eu-central-1' % (
-            foo_txt, bucket_name))
+        p = aws(f's3 cp {foo_txt} s3://{bucket_name}/ --region eu-central-1')
         self.assert_no_errors(p)
         self.assertTrue(self.key_exists(bucket_name, key_name='foo.txt'))
 
@@ -417,7 +410,6 @@ class TestCp(BaseS3CLICommand):
         # For comparing expires timestamp.
         add_scalar_parsers(self.session)
         bucket_name = self.create_bucket()
-        original_key = 'foo.txt'
         new_key = 'bar.txt'
         metadata = {
             'ContentType': 'foo',
@@ -427,10 +419,12 @@ class TestCp(BaseS3CLICommand):
             'CacheControl': '90',
             'Expires': '0'
         }
+        original_key = 'foo.txt'
         self.put_object(bucket_name, original_key, contents='foo',
                         extra_args=metadata)
-        p = aws('s3 cp s3://%s/%s s3://%s/%s' %
-                (bucket_name, original_key, bucket_name, new_key))
+        p = aws(
+            f's3 cp s3://{bucket_name}/{original_key} s3://{bucket_name}/{new_key}'
+        )
         self.assert_no_errors(p)
         response = self.head_object(bucket_name, new_key)
         # These values should have the metadata of the source object
@@ -440,8 +434,9 @@ class TestCp(BaseS3CLICommand):
             self.assertEqual(response[name], value)
 
         # Use REPLACE to wipe out all of the metadata.
-        p = aws('s3 cp s3://%s/%s s3://%s/%s --metadata-directive REPLACE' %
-                (bucket_name, original_key, bucket_name, new_key))
+        p = aws(
+            f's3 cp s3://{bucket_name}/{original_key} s3://{bucket_name}/{new_key} --metadata-directive REPLACE'
+        )
         self.assert_no_errors(p)
         response = self.head_object(bucket_name, new_key)
         # Make sure all of the original metadata is gone.
@@ -450,9 +445,9 @@ class TestCp(BaseS3CLICommand):
 
         # Use REPLACE to wipe out all of the metadata but include a new
         # metadata value.
-        p = aws('s3 cp s3://%s/%s s3://%s/%s --metadata-directive REPLACE '
-                '--content-type bar' %
-                (bucket_name, original_key, bucket_name, new_key))
+        p = aws(
+            f's3 cp s3://{bucket_name}/{original_key} s3://{bucket_name}/{new_key} --metadata-directive REPLACE --content-type bar'
+        )
         self.assert_no_errors(p)
         response = self.head_object(bucket_name, new_key)
         # Make sure the content type metadata is included
@@ -482,12 +477,10 @@ class TestSync(BaseS3CLICommand):
                 self.files.create_file('foo +%06d' % i,
                                        contents='',
                                        mtime=mtime))
-        p = aws('s3 sync %s s3://%s/ --page-size 2' %
-                (self.files.rootdir, bucket_name))
+        p = aws(f's3 sync {self.files.rootdir} s3://{bucket_name}/ --page-size 2')
         self.assert_no_errors(p)
         time.sleep(1)
-        p2 = aws('s3 sync %s s3://%s/ --page-size 2'
-                 % (self.files.rootdir, bucket_name))
+        p2 = aws(f's3 sync {self.files.rootdir} s3://{bucket_name}/ --page-size 2')
         self.assertNotIn('upload:', p2.stdout)
         self.assertEqual('', p2.stdout)
 
@@ -501,19 +494,17 @@ class TestSync(BaseS3CLICommand):
         bucket_name = self.create_bucket()
         bucket_name_2 = self.create_bucket()
 
-        p = aws('s3 sync %s s3://%s' % (self.files.rootdir, bucket_name))
+        p = aws(f's3 sync {self.files.rootdir} s3://{bucket_name}')
         self.assert_no_errors(p)
         for key in keynames:
             self.assertTrue(self.key_exists(bucket_name, key))
 
-        p = aws('s3 sync s3://%s/ s3://%s/ --page-size 2' %
-                (bucket_name, bucket_name_2))
+        p = aws(f's3 sync s3://{bucket_name}/ s3://{bucket_name_2}/ --page-size 2')
         self.assert_no_errors(p)
         for key in keynames:
             self.assertTrue(self.key_exists(bucket_name_2, key))
 
-        p2 = aws('s3 sync s3://%s/ s3://%s/ --page-size 2' %
-                 (bucket_name, bucket_name_2))
+        p2 = aws(f's3 sync s3://{bucket_name}/ s3://{bucket_name_2}/ --page-size 2')
         self.assertNotIn('copy:', p2.stdout)
         self.assertEqual('', p2.stdout)
 
@@ -523,14 +514,14 @@ class TestSync(BaseS3CLICommand):
         self.files.create_file(os.path.join('xyz', 'test'), contents='test3')
         bucket_name = self.create_bucket()
 
-        p = aws('s3 sync %s s3://%s' % (self.files.rootdir, bucket_name))
+        p = aws(f's3 sync {self.files.rootdir} s3://{bucket_name}')
         self.assert_no_errors(p)
         time.sleep(2)
         self.assertTrue(self.key_exists(bucket_name, 'xyz123456789'))
         self.assertTrue(self.key_exists(bucket_name, 'xyz1/test'))
         self.assertTrue(self.key_exists(bucket_name, 'xyz/test'))
 
-        p2 = aws('s3 sync %s s3://%s/' % (self.files.rootdir, bucket_name))
+        p2 = aws(f's3 sync {self.files.rootdir} s3://{bucket_name}/')
         self.assertNotIn('upload:', p2.stdout)
         self.assertEqual('', p2.stdout)
 
@@ -540,7 +531,7 @@ class TestSync(BaseS3CLICommand):
         bar_txt = self.files.create_file('bar.txt', 'bar contents')
 
         # Sync the directory and the bucket.
-        p = aws('s3 sync %s s3://%s' % (self.files.rootdir, bucket_name))
+        p = aws(f's3 sync {self.files.rootdir} s3://{bucket_name}')
         self.assert_no_errors(p)
 
         # Ensure both files are in the bucket.
@@ -550,7 +541,7 @@ class TestSync(BaseS3CLICommand):
         # Sync back down.  First remote the local files.
         os.remove(foo_txt)
         os.remove(bar_txt)
-        p = aws('s3 sync s3://%s %s' % (bucket_name, self.files.rootdir))
+        p = aws(f's3 sync s3://{bucket_name} {self.files.rootdir}')
         # The files should be back now.
         self.assertTrue(os.path.isfile(foo_txt))
         self.assertTrue(os.path.isfile(bar_txt))
@@ -564,14 +555,14 @@ class TestSync(BaseS3CLICommand):
         self.files.create_file('bar.txt', 'bar contents')
 
         # Sync the directory and the bucket.
-        p = aws('s3 sync %s s3://noexist-bkt-nme-1412' % (self.files.rootdir,))
+        p = aws(f's3 sync {self.files.rootdir} s3://noexist-bkt-nme-1412')
         self.assertEqual(p.rc, 1)
 
     def test_sync_with_empty_files(self):
         self.files.create_file('foo.txt', 'foo contents')
         self.files.create_file('bar.txt', contents='')
         bucket_name = self.create_bucket()
-        p = aws('s3 sync %s s3://%s/' % (self.files.rootdir, bucket_name))
+        p = aws(f's3 sync {self.files.rootdir} s3://{bucket_name}/')
         self.assertEqual(p.rc, 0)
         self.assertNotIn('failed', p.stderr)
         self.assertTrue(
@@ -601,15 +592,14 @@ class TestSync(BaseS3CLICommand):
         # Allow settling time so that we have a different time between
         # source and destination.
         time.sleep(2)
-        p = aws('s3 sync %s s3://%s/' % (self.files.rootdir, bucket_name))
+        p = aws(f's3 sync {self.files.rootdir} s3://{bucket_name}/')
         self.assert_no_errors(p)
 
         # Now here's the issue.  If we try to sync the contents down
         # with the --delete flag we should *not* see any output, the
         # sync operation should determine that nothing is different and
         # therefore do nothing.  We can just use --dryrun to show the issue.
-        p = aws('s3 sync s3://%s/ %s --dryrun --delete' % (
-            bucket_name, self.files.rootdir))
+        p = aws(f's3 sync s3://{bucket_name}/ {self.files.rootdir} --dryrun --delete')
         self.assert_no_errors(p)
         # These assertion methods will give better error messages than just
         # checking if the output is empty.
@@ -620,18 +610,15 @@ class TestSync(BaseS3CLICommand):
 
 class TestSourceRegion(BaseS3CLICommand):
     def extra_setup(self):
-        name_comp = []
-        # This creates a non DNS compatible bucket name by making two random
-        # sequences of characters and joining them with a period and
-        # adding a .com at the end.
-        for i in range(2):
-            name_comp.append(''.join(random.sample(string.ascii_lowercase +
-                                                   string.digits, 10)))
+        name_comp = [
+            ''.join(random.sample(string.ascii_lowercase + string.digits, 10))
+            for _ in range(2)
+        ]
         self.src_name = '.'.join(name_comp + ['com'])
-        name_comp = []
-        for i in range(2):
-            name_comp.append(''.join(random.sample(string.ascii_lowercase +
-                                                   string.digits, 10)))
+        name_comp = [
+            ''.join(random.sample(string.ascii_lowercase + string.digits, 10))
+            for _ in range(2)
+        ]
         self.dest_name = '.'.join(name_comp + ['com'])
         self.src_region = 'us-west-1'
         self.dest_region = 'us-east-1'
@@ -640,18 +627,21 @@ class TestSourceRegion(BaseS3CLICommand):
 
     def testFailWithoutRegion(self):
         self.files.create_file('foo.txt', 'foo')
-        p = aws('s3 sync %s s3://%s/ --region %s' %
-                (self.files.rootdir, self.src_bucket, self.src_region))
+        p = aws(
+            f's3 sync {self.files.rootdir} s3://{self.src_bucket}/ --region {self.src_region}'
+        )
         self.assert_no_errors(p)
-        p2 = aws('s3 sync s3://%s/ s3://%s/ --region %s' %
-                 (self.src_bucket, self.dest_bucket, self.src_region))
+        p2 = aws(
+            f's3 sync s3://{self.src_bucket}/ s3://{self.dest_bucket}/ --region {self.src_region}'
+        )
         self.assertEqual(p2.rc, 1, p2.stdout)
         self.assertIn('PermanentRedirect', p2.stderr)
 
     def testCpRegion(self):
         self.files.create_file('foo.txt', 'foo')
-        p = aws('s3 sync %s s3://%s/ --region %s' %
-                (self.files.rootdir, self.src_bucket, self.src_region))
+        p = aws(
+            f's3 sync {self.files.rootdir} s3://{self.src_bucket}/ --region {self.src_region}'
+        )
         self.assert_no_errors(p)
         p2 = aws('s3 cp s3://%s/ s3://%s/ --region %s --source-region %s '
                  '--recursive' %
@@ -663,20 +653,22 @@ class TestSourceRegion(BaseS3CLICommand):
 
     def testSyncRegion(self):
         self.files.create_file('foo.txt', 'foo')
-        p = aws('s3 sync %s s3://%s/ --region %s' %
-                (self.files.rootdir, self.src_bucket, self.src_region))
+        p = aws(
+            f's3 sync {self.files.rootdir} s3://{self.src_bucket}/ --region {self.src_region}'
+        )
         self.assert_no_errors(p)
-        p2 = aws('s3 sync s3://%s/ s3://%s/ --region %s --source-region %s ' %
-                 (self.src_bucket, self.dest_bucket, self.dest_region,
-                  self.src_region))
+        p2 = aws(
+            f's3 sync s3://{self.src_bucket}/ s3://{self.dest_bucket}/ --region {self.dest_region} --source-region {self.src_region} '
+        )
         self.assertEqual(p2.rc, 0, p2.stdout)
         self.assertTrue(
             self.key_exists(bucket_name=self.dest_bucket, key_name='foo.txt'))
 
     def testMvRegion(self):
         self.files.create_file('foo.txt', 'foo')
-        p = aws('s3 sync %s s3://%s/ --region %s' %
-                (self.files.rootdir, self.src_bucket, self.src_region))
+        p = aws(
+            f's3 sync {self.files.rootdir} s3://{self.src_bucket}/ --region {self.src_region}'
+        )
         self.assert_no_errors(p)
         p2 = aws('s3 mv s3://%s/ s3://%s/ --region %s --source-region %s '
                  '--recursive' %
@@ -690,14 +682,13 @@ class TestSourceRegion(BaseS3CLICommand):
 
     def testMvLargeFileRegion(self):
         foo_txt = self.files.create_file('foo.txt', 'a' * 1024 * 1024 * 10)
-        p = aws('s3 cp %s s3://%s/foo.txt --region %s' %
-                (foo_txt, self.src_bucket, self.src_region))
+        p = aws(
+            f's3 cp {foo_txt} s3://{self.src_bucket}/foo.txt --region {self.src_region}'
+        )
         self.assert_no_errors(p)
 
         p2 = aws(
-            's3 mv s3://%s/foo.txt s3://%s/ --region %s --source-region %s ' %
-            (self.src_bucket, self.dest_bucket, self.dest_region,
-             self.src_region)
+            f's3 mv s3://{self.src_bucket}/foo.txt s3://{self.dest_bucket}/ --region {self.dest_region} --source-region {self.src_region} '
         )
         self.assert_no_errors(p2)
         self.assertTrue(
@@ -712,10 +703,11 @@ class TestWarnings(BaseS3CLICommand):
 
     def test_no_exist(self):
         filename = os.path.join(self.files.rootdir, "no-exists-file")
-        p = aws('s3 cp %s s3://%s/' % (filename, self.bucket_name))
+        p = aws(f's3 cp {filename} s3://{self.bucket_name}/')
         self.assertEqual(p.rc, 2, p.stderr)
-        self.assertIn('warning: Skipping file %s. File does not exist.' %
-                      filename, p.stderr)
+        self.assertIn(
+            f'warning: Skipping file {filename}. File does not exist.', p.stderr
+        )
 
     @unittest.skipIf(platform.system() not in ['Darwin', 'Linux'],
                      'Read permissions tests only supported on mac/linux')
@@ -728,7 +720,7 @@ class TestWarnings(BaseS3CLICommand):
         # Remove read permissions
         permissions = permissions ^ stat.S_IREAD
         os.chmod(filename, permissions)
-        p = aws('s3 cp %s s3://%s/' % (filename, self.bucket_name))
+        p = aws(f's3 cp {filename} s3://{self.bucket_name}/')
         self.assertEqual(p.rc, 2, p.stderr)
         self.assertIn('warning: Skipping file %s. File/Directory is '
                       'not readable.' % filename, p.stderr)
@@ -740,7 +732,7 @@ class TestWarnings(BaseS3CLICommand):
         # Use socket for special file.
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         sock.bind(file_path)
-        p = aws('s3 cp %s s3://%s/' % (file_path, self.bucket_name))
+        p = aws(f's3 cp {file_path} s3://{self.bucket_name}/')
         self.assertEqual(p.rc, 2, p.stderr)
         self.assertIn(("warning: Skipping file %s. File is character "
                        "special device, block special device, FIFO, or "
@@ -771,8 +763,9 @@ class TestSymlinks(BaseS3CLICommand):
                                                  'c-goodsymlink'))
 
     def test_no_follow_symlinks(self):
-        p = aws('s3 sync %s s3://%s/ --no-follow-symlinks' % (
-            self.files.rootdir, self.bucket_name))
+        p = aws(
+            f's3 sync {self.files.rootdir} s3://{self.bucket_name}/ --no-follow-symlinks'
+        )
         self.assert_no_errors(p)
         self.assertTrue(not self.key_exists(self.bucket_name,
                         'a-goodsymlink'))
@@ -787,8 +780,9 @@ class TestSymlinks(BaseS3CLICommand):
     def test_follow_symlinks(self):
         # Get rid of the bad symlink first.
         os.remove(os.path.join(self.files.rootdir, 'b-badsymlink'))
-        p = aws('s3 sync %s s3://%s/ --follow-symlinks' %
-                (self.files.rootdir, self.bucket_name))
+        p = aws(
+            f's3 sync {self.files.rootdir} s3://{self.bucket_name}/ --follow-symlinks'
+        )
         self.assert_no_errors(p)
         self.assertEqual(self.get_key_contents(self.bucket_name,
                                                key_name='a-goodsymlink'),
@@ -806,8 +800,7 @@ class TestSymlinks(BaseS3CLICommand):
     def test_follow_symlinks_default(self):
         # Get rid of the bad symlink first.
         os.remove(os.path.join(self.files.rootdir, 'b-badsymlink'))
-        p = aws('s3 sync %s s3://%s/' %
-                (self.files.rootdir, self.bucket_name))
+        p = aws(f's3 sync {self.files.rootdir} s3://{self.bucket_name}/')
         self.assert_no_errors(p)
         self.assertEqual(self.get_key_contents(self.bucket_name,
                                                key_name='a-goodsymlink'),
@@ -823,11 +816,12 @@ class TestSymlinks(BaseS3CLICommand):
                          'foo.txt contents')
 
     def test_bad_symlink(self):
-        p = aws('s3 sync %s s3://%s/' % (self.files.rootdir, self.bucket_name))
+        p = aws(f's3 sync {self.files.rootdir} s3://{self.bucket_name}/')
         self.assertEqual(p.rc, 2, p.stderr)
-        self.assertIn('warning: Skipping file %s. File does not exist.' %
-                      os.path.join(self.files.rootdir, 'b-badsymlink'),
-                      p.stderr)
+        self.assertIn(
+            f"warning: Skipping file {os.path.join(self.files.rootdir, 'b-badsymlink')}. File does not exist.",
+            p.stderr,
+        )
 
 
 class TestUnicode(BaseS3CLICommand):
@@ -840,16 +834,15 @@ class TestUnicode(BaseS3CLICommand):
     def test_cp(self):
         bucket_name = self.create_bucket()
         local_example1_txt = \
-            self.files.create_file(u'\u00e9xample.txt', 'example1 contents')
-        s3_example1_txt = 's3://%s/%s' % (bucket_name,
-                                          os.path.basename(local_example1_txt))
+                self.files.create_file(u'\u00e9xample.txt', 'example1 contents')
+        s3_example1_txt = f's3://{bucket_name}/{os.path.basename(local_example1_txt)}'
         local_example2_txt = self.files.full_path(u'\u00e9xample2.txt')
 
-        p = aws('s3 cp %s %s' % (local_example1_txt, s3_example1_txt))
+        p = aws(f's3 cp {local_example1_txt} {s3_example1_txt}')
         self.assert_no_errors(p)
 
         # Download the file to the second example2.txt filename.
-        p = aws('s3 cp %s %s --quiet' % (s3_example1_txt, local_example2_txt))
+        p = aws(f's3 cp {s3_example1_txt} {local_example2_txt} --quiet')
         self.assert_no_errors(p)
         with open(local_example2_txt, 'rb') as f:
             self.assertEqual(f.read(), b'example1 contents')
@@ -860,15 +853,13 @@ class TestUnicode(BaseS3CLICommand):
                                                     'example1 contents')
         local_example2_txt = self.files.create_file(u'\u00e9xample2.txt',
                                                     'example2 contents')
-        p = aws('s3 cp %s s3://%s --recursive --quiet' % (
-            self.files.rootdir, bucket_name))
+        p = aws(f's3 cp {self.files.rootdir} s3://{bucket_name} --recursive --quiet')
         self.assert_no_errors(p)
 
         os.remove(local_example1_txt)
         os.remove(local_example2_txt)
 
-        p = aws('s3 cp s3://%s %s --recursive --quiet' % (
-            bucket_name, self.files.rootdir))
+        p = aws(f's3 cp s3://{bucket_name} {self.files.rootdir} --recursive --quiet')
         self.assert_no_errors(p)
         self.assertEqual(open(local_example1_txt).read(), 'example1 contents')
         self.assertEqual(open(local_example2_txt).read(), 'example2 contents')
@@ -913,7 +904,7 @@ class TestLs(BaseS3CLICommand):
         self.put_object(bucket_name, 'foo', 'contents')
         self.put_object(bucket_name, 'bar.txt', 'contents')
         self.put_object(bucket_name, 'subdir/foo.txt', 'contents')
-        p = aws('s3 ls s3://%s' % bucket_name)
+        p = aws(f's3 ls s3://{bucket_name}')
         self.assertIn('PRE subdir/', p.stdout)
         self.assertIn('8 foo.txt', p.stdout)
         self.assertIn('8 foo', p.stdout)
@@ -925,7 +916,7 @@ class TestLs(BaseS3CLICommand):
         self.put_object(bucket_name, 'foo', 'contents')
         self.put_object(bucket_name, 'bar.txt', 'contents')
         self.put_object(bucket_name, 'subdir/foo.txt', 'contents')
-        p = aws('s3 ls s3://%s --recursive' % bucket_name)
+        p = aws(f's3 ls s3://{bucket_name} --recursive')
         self.assertIn('8 foo.txt', p.stdout)
         self.assertIn('8 foo', p.stdout)
         self.assertIn('8 bar.txt', p.stdout)
@@ -936,32 +927,32 @@ class TestLs(BaseS3CLICommand):
         # we're always listing s3 contents.
         bucket_name = self.create_bucket()
         self.put_object(bucket_name, 'foo.txt', 'contents')
-        p = aws('s3 ls %s' % bucket_name)
+        p = aws(f's3 ls {bucket_name}')
         self.assertEqual(p.rc, 0)
         self.assertIn('foo.txt', p.stdout)
 
     def test_only_prefix(self):
         bucket_name = self.create_bucket()
         self.put_object(bucket_name, 'temp/foo.txt', 'contents')
-        p = aws('s3 ls s3://%s/temp/foo.txt' % bucket_name)
+        p = aws(f's3 ls s3://{bucket_name}/temp/foo.txt')
         self.assertEqual(p.rc, 0)
         self.assertIn('foo.txt', p.stdout)
 
     def test_ls_empty_bucket(self):
         bucket_name = self.create_bucket()
-        p = aws('s3 ls %s' % bucket_name)
+        p = aws(f's3 ls {bucket_name}')
         # There should not be an error thrown for checking the contents of
         # an empty bucket because no key was specified.
         self.assertEqual(p.rc, 0)
 
     def test_ls_fail(self):
         bucket_name = self.create_bucket()
-        p = aws('s3 ls s3://%s/foo' % bucket_name)
+        p = aws(f's3 ls s3://{bucket_name}/foo')
         self.assertEqual(p.rc, 1)
 
     def test_ls_fail_recursive(self):
         bucket_name = self.create_bucket()
-        p = aws('s3 ls s3://%s/bar --recursive' % bucket_name)
+        p = aws(f's3 ls s3://{bucket_name}/bar --recursive')
         self.assertEqual(p.rc, 1)
 
 
@@ -970,10 +961,10 @@ class TestMbRb(BaseS3CLICommand):
     Tests primarily using ``rb`` and ``mb`` command.
     """
     def extra_setup(self):
-        self.bucket_name = 'awscli-s3integ-' + str(random.randint(1, 1000))
+        self.bucket_name = f'awscli-s3integ-{random.randint(1, 1000)}'
 
     def test_mb_rb(self):
-        p = aws('s3 mb s3://%s' % self.bucket_name)
+        p = aws(f's3 mb s3://{self.bucket_name}')
         self.assert_no_errors(p)
 
         # Give the bucket time to form.
@@ -981,7 +972,7 @@ class TestMbRb(BaseS3CLICommand):
         response = self.list_buckets()
         self.assertIn(self.bucket_name, [b['Name'] for b in response])
 
-        p = aws('s3 rb s3://%s' % self.bucket_name)
+        p = aws(f's3 rb s3://{self.bucket_name}')
         self.assert_no_errors(p)
 
     def test_fail_mb_rb(self):
@@ -1002,13 +993,13 @@ class TestOutput(BaseS3CLICommand):
         foo_txt = self.files.create_file('foo.txt', 'foo contents')
 
         # Copy file into bucket.
-        p = aws('s3 cp %s s3://%s/' % (foo_txt, bucket_name))
+        p = aws(f's3 cp {foo_txt} s3://{bucket_name}/')
         self.assertEqual(p.rc, 0)
         # Check that there were no errors and that parts of the expected
         # progress message are written to stdout.
         self.assert_no_errors(p)
         self.assertIn('upload', p.stdout)
-        self.assertIn('s3://%s/foo.txt' % bucket_name, p.stdout)
+        self.assertIn(f's3://{bucket_name}/foo.txt', p.stdout)
 
     def test_normal_output_quiet(self):
         # Make a bucket.
@@ -1016,7 +1007,7 @@ class TestOutput(BaseS3CLICommand):
         foo_txt = self.files.create_file('foo.txt', 'foo contents')
 
         # Copy file into bucket.
-        p = aws('s3 cp %s s3://%s/ --quiet' % (foo_txt, bucket_name))
+        p = aws(f's3 cp {foo_txt} s3://{bucket_name}/ --quiet')
         self.assertEqual(p.rc, 0)
         # Check that nothing was printed to stdout.
         self.assertEqual('', p.stdout)
@@ -1027,8 +1018,7 @@ class TestOutput(BaseS3CLICommand):
         foo_txt = self.files.create_file('foo.txt', 'foo contents')
 
         # Copy file into bucket.
-        p = aws('s3 cp %s s3://%s/ --only-show-errors' % (foo_txt,
-                                                          bucket_name))
+        p = aws(f's3 cp {foo_txt} s3://{bucket_name}/ --only-show-errors')
         self.assertEqual(p.rc, 0)
         # Check that nothing was printed to stdout.
         self.assertEqual('', p.stdout)
@@ -1037,7 +1027,7 @@ class TestOutput(BaseS3CLICommand):
         foo_txt = self.files.create_file('foo.txt', 'foo contents')
 
         # Copy file into bucket.
-        p = aws('s3 cp %s s3://non-existant-bucket/' % foo_txt)
+        p = aws(f's3 cp {foo_txt} s3://non-existant-bucket/')
         # Check that there were errors and that the error was print to stderr.
         self.assertEqual(p.rc, 1)
         self.assertIn('upload failed', p.stderr)
@@ -1046,7 +1036,7 @@ class TestOutput(BaseS3CLICommand):
         foo_txt = self.files.create_file('foo.txt', 'foo contents')
 
         # Copy file into bucket.
-        p = aws('s3 cp %s s3://non-existant-bucket/ --quiet' % foo_txt)
+        p = aws(f's3 cp {foo_txt} s3://non-existant-bucket/ --quiet')
         # Check that there were errors and that the error was not
         # print to stderr.
         self.assertEqual(p.rc, 1)
@@ -1056,8 +1046,7 @@ class TestOutput(BaseS3CLICommand):
         foo_txt = self.files.create_file('foo.txt', 'foo contents')
 
         # Copy file into bucket.
-        p = aws('s3 cp %s s3://non-existant-bucket/ --only-show-errors'
-                % foo_txt)
+        p = aws(f's3 cp {foo_txt} s3://non-existant-bucket/ --only-show-errors')
         # Check that there were errors and that the error was print to stderr.
         self.assertEqual(p.rc, 1)
         self.assertIn('upload failed', p.stderr)
@@ -1076,8 +1065,9 @@ class TestOutput(BaseS3CLICommand):
         # longer than 1024 bytes which is not allowed in s3.
         long_prefix = 'd' * 1022
 
-        p = aws('s3 cp %s s3://%s/%s/ --only-show-errors --recursive'
-                % (self.files.rootdir, bucket_name, long_prefix))
+        p = aws(
+            f's3 cp {self.files.rootdir} s3://{bucket_name}/{long_prefix}/ --only-show-errors --recursive'
+        )
 
         # Check that there was at least one error.
         self.assertEqual(p.rc, 1)
@@ -1089,7 +1079,7 @@ class TestOutput(BaseS3CLICommand):
         self.assertIn('upload failed', p.stderr)
 
         # Ensure the expected successful key exists in the bucket.
-        self.assertTrue(self.key_exists(bucket_name, long_prefix + '/f'))
+        self.assertTrue(self.key_exists(bucket_name, f'{long_prefix}/f'))
 
 
 class TestDryrun(BaseS3CLICommand):
@@ -1102,7 +1092,7 @@ class TestDryrun(BaseS3CLICommand):
         foo_txt = self.files.create_file('foo.txt', 'foo contents')
 
         # Copy file into bucket.
-        p = aws('s3 cp %s s3://%s/ --dryrun' % (foo_txt, bucket_name))
+        p = aws(f's3 cp {foo_txt} s3://{bucket_name}/ --dryrun')
         self.assertEqual(p.rc, 0)
         self.assert_no_errors(p)
         self.assertFalse(self.key_exists(bucket_name, 'foo.txt'))
@@ -1112,7 +1102,7 @@ class TestDryrun(BaseS3CLICommand):
         foo_txt = self.files.create_file('foo.txt', 'a' * 1024 * 1024 * 10)
 
         # Copy file into bucket.
-        p = aws('s3 cp %s s3://%s/ --dryrun' % (foo_txt, bucket_name))
+        p = aws(f's3 cp {foo_txt} s3://{bucket_name}/ --dryrun')
         self.assertEqual(p.rc, 0)
         self.assert_no_errors(p)
         self.assertFalse(
@@ -1127,7 +1117,7 @@ class TestDryrun(BaseS3CLICommand):
             self.put_object(bucket_name, 'foo.txt', body)
 
         foo_txt = self.files.full_path('foo.txt')
-        p = aws('s3 cp s3://%s/foo.txt %s --dryrun' % (bucket_name, foo_txt))
+        p = aws(f's3 cp s3://{bucket_name}/foo.txt {foo_txt} --dryrun')
         self.assertEqual(p.rc, 0)
         self.assert_no_errors(p)
         self.assertFalse(
@@ -1165,14 +1155,13 @@ class TestMemoryUtilization(BaseS3CLICommand):
         bucket_name = self.create_bucket()
         file_contents = 'abcdabcd' * (1024 * 1024 * 10)
         foo_txt = self.files.create_file('foo.txt', file_contents)
-        full_command = 's3 mv %s s3://%s/foo.txt' % (foo_txt, bucket_name)
+        full_command = f's3 mv {foo_txt} s3://{bucket_name}/foo.txt'
         p = aws(full_command, collect_memory=True)
         self.assert_no_errors(p)
         self.assert_max_memory_used(p, self.max_mem_allowed, full_command)
 
         # Verify downloading it back down obeys memory utilization.
-        download_full_command = 's3 mv s3://%s/foo.txt %s' % (
-            bucket_name, foo_txt)
+        download_full_command = f's3 mv s3://{bucket_name}/foo.txt {foo_txt}'
         p = aws(download_full_command, collect_memory=True)
         self.assert_no_errors(p)
         self.assert_max_memory_used(p, self.max_mem_allowed,
@@ -1198,7 +1187,7 @@ class TestMemoryUtilization(BaseS3CLICommand):
         num_mb = 200
         foo_txt = self.files.create_file('foo.txt', '')
         with open(foo_txt, 'wb') as f:
-            for i in range(num_mb):
+            for _ in range(num_mb):
                 f.write(b'a' * 1024 * 1024)
 
         # The current memory threshold is set at about the peak amount for
@@ -1209,14 +1198,14 @@ class TestMemoryUtilization(BaseS3CLICommand):
         # by a thread when performing a streaming multipart upload.
         max_mem_allowed = self.max_mem_allowed + 2 * self.chunk_size
 
-        full_command = 's3 cp - s3://%s/foo.txt' % bucket_name
+        full_command = f's3 cp - s3://{bucket_name}/foo.txt'
         with open(foo_txt, 'rb') as f:
             p = aws(full_command, input_file=f, collect_memory=True)
             self.assert_no_errors(p)
             self.assert_max_memory_used(p, max_mem_allowed, full_command)
 
         # Now perform a streaming download of the file.
-        full_command = 's3 cp s3://%s/foo.txt - > %s' % (bucket_name, foo_txt)
+        full_command = f's3 cp s3://{bucket_name}/foo.txt - > {foo_txt}'
         p = aws(full_command, collect_memory=True)
         self.assert_no_errors(p)
         # Use the ususal bar for maximum memory usage since a streaming
@@ -1229,8 +1218,7 @@ class TestWebsiteConfiguration(BaseS3CLICommand):
     def test_create_website_index_configuration(self):
         bucket_name = self.create_bucket()
         # Supply only --index-document argument.
-        full_command = 's3 website %s --index-document index.html' % \
-            (bucket_name)
+        full_command = f's3 website {bucket_name} --index-document index.html'
         p = aws(full_command)
         self.assertEqual(p.rc, 0)
         self.assert_no_errors(p)
@@ -1266,12 +1254,11 @@ class TestIncludeExcludeFilters(BaseS3CLICommand):
     def test_basic_exclude_filter_for_single_file(self):
         full_path = self.files.create_file('foo.txt', 'this is foo.txt')
         # With no exclude we should upload the file.
-        p = aws('s3 cp %s s3://random-bucket-name/ --dryrun' % full_path)
+        p = aws(f's3 cp {full_path} s3://random-bucket-name/ --dryrun')
         self.assert_no_errors(p)
         self.assertIn('(dryrun) upload:', p.stdout)
 
-        p2 = aws("s3 cp %s s3://random-bucket-name/ --dryrun --exclude '*'"
-                 % full_path)
+        p2 = aws(f"s3 cp {full_path} s3://random-bucket-name/ --dryrun --exclude '*'")
         self.assert_no_files_would_be_uploaded(p2)
 
     def test_explicitly_exclude_single_file(self):
@@ -1286,8 +1273,7 @@ class TestIncludeExcludeFilters(BaseS3CLICommand):
         tempdir = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, tempdir)
         with cd(tempdir):
-            p = aws("s3 cp %s s3://random-bucket-name/ --dryrun --exclude '*'"
-                    % full_path)
+            p = aws(f"s3 cp {full_path} s3://random-bucket-name/ --dryrun --exclude '*'")
         self.assert_no_files_would_be_uploaded(p)
 
     def test_recursive_exclude(self):
@@ -1319,8 +1305,7 @@ class TestIncludeExcludeFilters(BaseS3CLICommand):
         self.put_object(bucket_name, key_name='foo.txt')
         self.put_object(bucket_name, key_name='bar.txt')
         self.put_object(bucket_name, key_name='baz.jpg')
-        p = aws("s3 rm s3://%s/ --dryrun --exclude '*' --recursive"
-                % bucket_name)
+        p = aws(f"s3 rm s3://{bucket_name}/ --dryrun --exclude '*' --recursive")
         self.assert_no_files_would_be_uploaded(p)
 
         p = aws(
@@ -1328,8 +1313,7 @@ class TestIncludeExcludeFilters(BaseS3CLICommand):
             "--recursive" % bucket_name)
         self.assert_no_files_would_be_uploaded(p)
 
-        p = aws("s3 rm s3://%s/ --dryrun --exclude '*.txt' --recursive"
-                % bucket_name)
+        p = aws(f"s3 rm s3://{bucket_name}/ --dryrun --exclude '*.txt' --recursive")
         self.assert_no_errors(p)
         self.assertRegexpMatches(p.stdout, r'\(dryrun\) delete:.*baz.jpg.*')
         self.assertNotIn(p.stdout, 'bar.txt')
@@ -1340,7 +1324,7 @@ class TestIncludeExcludeFilters(BaseS3CLICommand):
         bucket_name = self.create_bucket()
         self.files.create_file('foo.txt', 'contents')
         second = self.files.create_file('bar.py', 'contents')
-        p = aws("s3 sync %s s3://%s/" % (self.files.rootdir, bucket_name))
+        p = aws(f"s3 sync {self.files.rootdir} s3://{bucket_name}/")
         self.assert_no_errors(p)
         self.assertTrue(self.key_exists(bucket_name, key_name='bar.py'))
         os.remove(second)
@@ -1353,8 +1337,9 @@ class TestIncludeExcludeFilters(BaseS3CLICommand):
         #
         # If we now run --exclude '*.py' --delete, then we should *not*
         # delete bar.py and the remote side.
-        p = aws("s3 sync %s s3://%s/ --exclude '*.py' --delete" % (
-            self.files.rootdir, bucket_name))
+        p = aws(
+            f"s3 sync {self.files.rootdir} s3://{bucket_name}/ --exclude '*.py' --delete"
+        )
         self.assert_no_errors(p)
         self.assertTrue(
             self.key_exists(bucket_name, key_name='bar.py'),
@@ -1368,7 +1353,7 @@ class TestIncludeExcludeFilters(BaseS3CLICommand):
         bucket_name = self.create_bucket()
         self.files.create_file('foo.txt', 'contents')
         second = self.files.create_file('bar.py', 'contents')
-        p = aws("s3 sync %s s3://%s/" % (self.files.rootdir, bucket_name))
+        p = aws(f"s3 sync {self.files.rootdir} s3://{bucket_name}/")
         self.assert_no_errors(p)
         self.assertTrue(self.key_exists(bucket_name, key_name='bar.py'))
         os.remove(second)
@@ -1376,8 +1361,7 @@ class TestIncludeExcludeFilters(BaseS3CLICommand):
         try:
             os.chdir(self.files.rootdir)
             # Note how we're using "." for the source directory.
-            p = aws("s3 sync . s3://%s/ --exclude '*.py' --delete"
-                    % bucket_name)
+            p = aws(f"s3 sync . s3://{bucket_name}/ --exclude '*.py' --delete")
         finally:
             os.chdir(cwd)
         self.assert_no_errors(p)
@@ -1390,8 +1374,9 @@ class TestIncludeExcludeFilters(BaseS3CLICommand):
     def test_filter_s3_with_prefix(self):
         bucket_name = self.create_bucket()
         self.put_object(bucket_name, key_name='temp/test')
-        p = aws('s3 cp s3://%s/temp/ %s --recursive --exclude test --dryrun'
-                % (bucket_name, self.files.rootdir))
+        p = aws(
+            f's3 cp s3://{bucket_name}/temp/ {self.files.rootdir} --recursive --exclude test --dryrun'
+        )
         self.assert_no_files_would_be_uploaded(p)
 
     def test_filter_no_resync(self):
@@ -1402,13 +1387,14 @@ class TestIncludeExcludeFilters(BaseS3CLICommand):
         self.files.create_file(os.path.join(dir_name, 'test.txt'),
                                contents='foo')
         # Sync a local directory to an s3 prefix.
-        p = aws('s3 sync %s s3://%s/temp' % (dir_name, bucket_name))
+        p = aws(f's3 sync {dir_name} s3://{bucket_name}/temp')
         self.assert_no_errors(p)
         self.assertTrue(self.key_exists(bucket_name, key_name='temp/test.txt'))
 
         # Nothing should be synced down if filters are used.
-        p = aws("s3 sync s3://%s/temp %s --exclude '*' --include test.txt"
-                % (bucket_name, dir_name))
+        p = aws(
+            f"s3 sync s3://{bucket_name}/temp {dir_name} --exclude '*' --include test.txt"
+        )
         self.assert_no_files_would_be_uploaded(p)
 
 
@@ -1416,13 +1402,11 @@ class TestFileWithSpaces(BaseS3CLICommand):
     def test_upload_download_file_with_spaces(self):
         bucket_name = self.create_bucket()
         filename = self.files.create_file('with space.txt', 'contents')
-        p = aws('s3 cp %s s3://%s/ --recursive' % (self.files.rootdir,
-                                                   bucket_name))
+        p = aws(f's3 cp {self.files.rootdir} s3://{bucket_name}/ --recursive')
         self.assert_no_errors(p)
         os.remove(filename)
         # Now download the file back down locally.
-        p = aws('s3 cp s3://%s/ %s --recursive' % (bucket_name,
-                                                   self.files.rootdir))
+        p = aws(f's3 cp s3://{bucket_name}/ {self.files.rootdir} --recursive')
         self.assert_no_errors(p)
         self.assertEqual(os.listdir(self.files.rootdir)[0], 'with space.txt')
 
@@ -1431,14 +1415,12 @@ class TestFileWithSpaces(BaseS3CLICommand):
         bucket_name = self.create_bucket()
         self.files.create_file('with space.txt',
                                'contents', mtime=time.time() - 300)
-        p = aws('s3 sync %s s3://%s/' % (self.files.rootdir,
-                                         bucket_name))
+        p = aws(f's3 sync {self.files.rootdir} s3://{bucket_name}/')
         self.assert_no_errors(p)
         time.sleep(1)
         # Now syncing again should *not* trigger any uploads (i.e we should
         # get nothing on stdout).
-        p2 = aws('s3 sync %s s3://%s/' % (self.files.rootdir,
-                                          bucket_name))
+        p2 = aws(f's3 sync {self.files.rootdir} s3://{bucket_name}/')
         self.assertEqual(p2.stdout, '')
         self.assertEqual(p2.stderr, '')
         self.assertEqual(p2.rc, 0)
@@ -1450,8 +1432,7 @@ class TestStreams(BaseS3CLICommand):
         This tests uploading a small stream from stdin.
         """
         bucket_name = self.create_bucket()
-        p = aws('s3 cp - s3://%s/stream' % bucket_name,
-                input_data=b'This is a test')
+        p = aws(f's3 cp - s3://{bucket_name}/stream', input_data=b'This is a test')
         self.assert_no_errors(p)
         self.assertTrue(self.key_exists(bucket_name, 'stream'))
         self.assertEqual(self.get_key_contents(bucket_name, 'stream'),
@@ -1464,8 +1445,7 @@ class TestStreams(BaseS3CLICommand):
         unicode_str = u'\u00e9 This is a test'
         byte_str = unicode_str.encode('utf-8')
         bucket_name = self.create_bucket()
-        p = aws('s3 cp - s3://%s/stream' % bucket_name,
-                input_data=byte_str)
+        p = aws(f's3 cp - s3://{bucket_name}/stream', input_data=byte_str)
         self.assert_no_errors(p)
         self.assertTrue(self.key_exists(bucket_name, 'stream'))
         self.assertEqual(self.get_key_contents(bucket_name, 'stream'),
@@ -1481,8 +1461,7 @@ class TestStreams(BaseS3CLICommand):
         bucket_name = self.create_bucket()
         data = u'\u00e9bcd' * (1024 * 1024 * 10)
         data_encoded = data.encode('utf-8')
-        p = aws('s3 cp - s3://%s/stream' % bucket_name,
-                input_data=data_encoded)
+        p = aws(f's3 cp - s3://{bucket_name}/stream', input_data=data_encoded)
         self.assert_no_errors(p)
         self.assertTrue(self.key_exists(bucket_name, 'stream'))
         self.assert_key_contents_equal(bucket_name, 'stream', data)
@@ -1492,11 +1471,10 @@ class TestStreams(BaseS3CLICommand):
         This tests downloading a small stream from stdout.
         """
         bucket_name = self.create_bucket()
-        p = aws('s3 cp - s3://%s/stream' % bucket_name,
-                input_data=b'This is a test')
+        p = aws(f's3 cp - s3://{bucket_name}/stream', input_data=b'This is a test')
         self.assert_no_errors(p)
 
-        p = aws('s3 cp s3://%s/stream -' % bucket_name)
+        p = aws(f's3 cp s3://{bucket_name}/stream -')
         self.assert_no_errors(p)
         self.assertEqual(p.stdout, 'This is a test')
 
@@ -1508,12 +1486,11 @@ class TestStreams(BaseS3CLICommand):
 
         data = u'\u00e9 This is a test'
         data_encoded = data.encode('utf-8')
-        p = aws('s3 cp - s3://%s/stream' % bucket_name,
-                input_data=data_encoded)
+        p = aws(f's3 cp - s3://{bucket_name}/stream', input_data=data_encoded)
         self.assert_no_errors(p)
 
         # Downloading the unicode stream to standard out.
-        p = aws('s3 cp s3://%s/stream -' % bucket_name)
+        p = aws(f's3 cp s3://{bucket_name}/stream -')
         self.assert_no_errors(p)
         self.assertEqual(p.stdout, data_encoded.decode(get_stdout_encoding()))
 
@@ -1529,11 +1506,10 @@ class TestStreams(BaseS3CLICommand):
         # its faster and we do not have to write to a file!
         data = u'\u00e9bcd' * (1024 * 1024 * 10)
         data_encoded = data.encode('utf-8')
-        p = aws('s3 cp - s3://%s/stream' % bucket_name,
-                input_data=data_encoded)
+        p = aws(f's3 cp - s3://{bucket_name}/stream', input_data=data_encoded)
 
         # Download the unicode stream to standard out.
-        p = aws('s3 cp s3://%s/stream -' % bucket_name)
+        p = aws(f's3 cp s3://{bucket_name}/stream -')
         self.assert_no_errors(p)
         self.assertEqual(p.stdout, data_encoded.decode(get_stdout_encoding()))
 
@@ -1568,15 +1544,17 @@ class TestNoSignRequests(BaseS3CLICommand):
         env_vars = os.environ.copy()
         env_vars['AWS_ACCESS_KEY_ID'] = 'foo'
         env_vars['AWS_SECRET_ACCESS_KEY'] = 'bar'
-        p = aws('s3 cp s3://%s/foo %s/ --region %s' %
-                (bucket_name, self.files.rootdir, self.region),
-                env_vars=env_vars)
+        p = aws(
+            f's3 cp s3://{bucket_name}/foo {self.files.rootdir}/ --region {self.region}',
+            env_vars=env_vars,
+        )
         # Should have credential issues
         self.assertEqual(p.rc, 1)
 
-        p = aws('s3 cp s3://%s/foo %s/ --region %s --no-sign-request' %
-                (bucket_name, self.files.rootdir, self.region),
-                env_vars=env_vars)
+        p = aws(
+            f's3 cp s3://{bucket_name}/foo {self.files.rootdir}/ --region {self.region} --no-sign-request',
+            env_vars=env_vars,
+        )
         # Should be able to download the file when not signing the request.
         self.assert_no_errors(p)
 

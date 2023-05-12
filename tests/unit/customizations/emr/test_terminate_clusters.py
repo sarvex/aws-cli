@@ -19,15 +19,13 @@ class TestTerminateClusters(BaseAWSCommandParamsTest):
     prefix = 'emr terminate-clusters'
 
     def test_cluster_id(self):
-        args = ' --cluster-ids j-ABC123456'
-        cmdline = self.prefix + args
         result = {'JobFlowIds': ['j-ABC123456']}
+        cmdline = f'{self.prefix} --cluster-ids j-ABC123456'
         self.assert_params_for_cmd(cmdline, result)
 
     def test_cluster_ids(self):
-        args = ' --cluster-ids j-ABC123456 j-AAAAAAA'
-        cmdline = self.prefix + args
         result = {'JobFlowIds': ['j-ABC123456', 'j-AAAAAAA']}
+        cmdline = f'{self.prefix} --cluster-ids j-ABC123456 j-AAAAAAA'
         self.assert_params_for_cmd(cmdline, result)
 
 if __name__ == "__main__":

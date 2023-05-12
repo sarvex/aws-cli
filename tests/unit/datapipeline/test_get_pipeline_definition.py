@@ -20,7 +20,7 @@ class TestGetPipelineDefinition(BaseAWSCommandParamsTest):
     def test_renamed_object_query_arg(self):
         # --version is renamed to --pipeline-version so we don't
         # conflict with the global --version argument.
-        cmdline = self.prefix + '--pipeline-id foo --pipeline-version latest'
+        cmdline = f'{self.prefix}--pipeline-id foo --pipeline-version latest'
         expected = {
             'pipelineId': 'foo', 'version': 'latest'
         }

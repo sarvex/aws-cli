@@ -283,7 +283,7 @@ class TestCliDriverHooks(unittest.TestCase):
 
     def serialize_param(self, param, value, **kwargs):
         if kwargs['cli_argument'].name == 'bucket':
-            return value + '-altered!'
+            return f'{value}-altered!'
 
     def test_expected_events_are_emitted_in_order(self):
         self.emitter.emit.return_value = []

@@ -31,20 +31,19 @@ class TestMvCommand(BaseAWSCommandParamsTest):
         self.files.remove_all()
 
     def test_cant_mv_object_onto_itself(self):
-        cmdline = '%s s3://bucket/key s3://bucket/key' % self.prefix
+        cmdline = f'{self.prefix} s3://bucket/key s3://bucket/key'
         stderr = self.run_cmd(cmdline, expected_rc=255)[1]
         self.assertIn('Cannot mv a file onto itself', stderr)
 
     def test_cant_mv_object_with_implied_name(self):
         # The "key" key name is implied in the dst argument.
-        cmdline = '%s s3://bucket/key s3://bucket/' % self.prefix
+        cmdline = f'{self.prefix} s3://bucket/key s3://bucket/'
         stderr = self.run_cmd(cmdline, expected_rc=255)[1]
         self.assertIn('Cannot mv a file onto itself', stderr)
 
     def test_website_redirect_ignore_paramfile(self):
         full_path = self.files.create_file('foo.txt', 'mycontent')
-        cmdline = '%s %s s3://bucket/key.txt --website-redirect %s' % \
-            (self.prefix, full_path, 'http://someserver')
+        cmdline = f'{self.prefix} {full_path} s3://bucket/key.txt --website-redirect http://someserver'
         self.parsed_responses = [{'ETag': '"c8afdb36c52cf4727836669019e69222"'}]
         self.run_cmd(cmdline, expected_rc=0)
         self.assertEqual(self.operations_called[0][0].name, 'PutObject')
@@ -74,10 +73,9 @@ class TestMvCommand(BaseAWSCommandParamsTest):
 
     def test_no_metadata_directive_for_non_copy(self):
         full_path = self.files.create_file('foo.txt', 'mycontent')
-        cmdline = '%s %s s3://bucket --metadata-directive REPLACE' % \
-            (self.prefix, full_path)
+        cmdline = f'{self.prefix} {full_path} s3://bucket --metadata-directive REPLACE'
         self.parsed_responses = \
-            [{'ETag': '"c8afdb36c52cf4727836669019e69222"'}]
+                [{'ETag': '"c8afdb36c52cf4727836669019e69222"'}]
         self.run_cmd(cmdline, expected_rc=0)
         self.assertEqual(len(self.operations_called), 1,
                          self.operations_called)

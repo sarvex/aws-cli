@@ -26,7 +26,7 @@ class TestParamFile(unittest.TestCase):
     def test_text_file(self):
         contents = 'This is a test'
         filename = self.files.create_file('foo', contents)
-        prefixed_filename = 'file://' + filename
+        prefixed_filename = f'file://{filename}'
         data = get_paramfile(prefixed_filename)
         self.assertEqual(data, contents)
         self.assertIsInstance(data, six.string_types)
@@ -34,7 +34,7 @@ class TestParamFile(unittest.TestCase):
     def test_binary_file(self):
         contents = 'This is a test'
         filename = self.files.create_file('foo', contents)
-        prefixed_filename = 'fileb://' + filename
+        prefixed_filename = f'fileb://{filename}'
         data = get_paramfile(prefixed_filename)
         self.assertEqual(data, b'This is a test')
         self.assertIsInstance(data, six.binary_type)

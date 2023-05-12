@@ -22,7 +22,7 @@ def platform_path(filepath):
     # Convert posix platforms to windows platforms.
     if platform.system().lower() == 'windows':
         filepath = filepath.replace('/', os.sep)
-        filepath = 'C:' + filepath
+        filepath = f'C:{filepath}'
     return filepath
 
 

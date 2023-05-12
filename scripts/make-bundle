@@ -59,8 +59,7 @@ def run(cmd):
     stdout, stderr = p.communicate()
     rc = p.wait()
     if p.returncode != 0:
-        raise BadRCError("Bad rc (%s) for cmd '%s': %s" % (
-            rc, cmd, stderr + stdout))
+        raise BadRCError(f"Bad rc ({rc}) for cmd '{cmd}': {stderr + stdout}")
     return stdout
 
 
@@ -77,8 +76,7 @@ def create_scratch_dir():
 def download_package_tarballs(dirname, packages):
     with cd(dirname):
         for package in packages:
-            run('pip install -d . %s==%s %s' % (
-                package, PACKAGE_VERSION[package], INSTALL_ARGS))
+            run(f'pip install -d . {package}=={PACKAGE_VERSION[package]} {INSTALL_ARGS}')
 
 
 def download_cli_deps(scratch_dir):
@@ -91,14 +89,14 @@ def download_cli_deps(scratch_dir):
     # the awscli as tarballs.
     # So here's what we do.
     # Step one create a virtualenv.
-    venv_dir = '/tmp/venv-%s' % str(int(time.time()))
-    run('virtualenv %s' % venv_dir)
+    venv_dir = f'/tmp/venv-{int(time.time())}'
+    run(f'virtualenv {venv_dir}')
     pip = os.path.join(venv_dir, 'bin', 'pip')
     assert os.path.isfile(pip)
     awscli_dir = os.path.dirname(
         os.path.dirname(os.path.abspath(__file__)))
     with cd(scratch_dir):
-        run('%s install %s -d . -e %s' % (pip, INSTALL_ARGS, awscli_dir))
+        run(f'{pip} install {INSTALL_ARGS} -d . -e {awscli_dir}')
     # Remove the awscli package, we'll create our own sdist.
     _remove_cli_zip(scratch_dir)
 
@@ -168,7 +166,7 @@ def main():
     verify_preconditions()
     scratch_dir = create_scratch_dir()
     package_dir = os.path.join(scratch_dir, 'packages')
-    print("Bundle dir at: %s" % scratch_dir)
+    print(f"Bundle dir at: {scratch_dir}")
     download_package_tarballs(
         package_dir,
         packages=['virtualenv', 'ordereddict', 'simplejson', 'argparse'])
@@ -176,7 +174,7 @@ def main():
     add_cli_sdist(package_dir)
     create_bootstrap_script(scratch_dir)
     zip_filename = zip_dir(scratch_dir)
-    print("Zipped bundle installer is at: %s" % zip_filename)
+    print(f"Zipped bundle installer is at: {zip_filename}")
 
 
 if __name__ == '__main__':

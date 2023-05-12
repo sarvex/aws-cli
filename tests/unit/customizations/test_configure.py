@@ -78,15 +78,14 @@ class FakeSession(object):
             # The credentials_file var doesn't require a
             # profile to exist.
             return '~/fake_credentials_filename'
-        if self.profile_does_not_exist and not name == 'config_file':
+        if self.profile_does_not_exist and name != 'config_file':
             raise ProfileNotFound(profile='foo')
-        if methods is not None:
-            if 'env' in methods:
-                return self.environment_vars.get(name)
-            elif 'config' in methods:
-                return self.config_file_vars.get(name)
-        else:
+        if methods is None:
             return self.variables.get(name)
+        if 'env' in methods:
+            return self.environment_vars.get(name)
+        elif 'config' in methods:
+            return self.config_file_vars.get(name)
 
     def emit(self, event_name, **kwargs):
         pass

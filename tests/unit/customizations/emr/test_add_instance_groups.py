@@ -56,31 +56,27 @@ class TestAddInstanceGroups(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(cmd, result)
 
     def test_instance_groups_missing_instance_group_type_error(self):
-        cmd = self.prefix + ' Name=Task,InstanceType=m1.small,' +\
-            'InstanceCount=5'
+        cmd = f'{self.prefix} Name=Task,InstanceType=m1.small,InstanceCount=5'
         result = self.run_cmd(cmd, 255)
         self.assert_error_message_has_field_name(result[1],
                                                  'InstanceGroupType')
 
     def test_instance_groups_missing_instance_type_error(self):
-        cmd = self.prefix + ' Name=Task,InstanceGroupType=Task,' +\
-            'InstanceCount=5'
+        cmd = f'{self.prefix} Name=Task,InstanceGroupType=Task,InstanceCount=5'
         stderr = self.run_cmd(cmd, 255)[1]
         self.assert_error_message_has_field_name(stderr, 'InstanceType')
 
     def test_instance_groups_missing_instance_count_error(self):
-        cmd = self.prefix + ' Name=Task,InstanceGroupType=Task,' +\
-            'InstanceType=m1.xlarge'
+        cmd = f'{self.prefix} Name=Task,InstanceGroupType=Task,InstanceType=m1.xlarge'
         stderr = self.run_cmd(cmd, 255)[1]
         self.assert_error_message_has_field_name(stderr, 'InstanceCount')
 
     def test_instance_groups_all_fields(self):
-        cmd = self.prefix + ' InstanceGroupType=MASTER,Name="MasterGroup",' +\
-            'InstanceCount=1,InstanceType=m1.large'
+        cmd = f'{self.prefix} InstanceGroupType=MASTER,Name="MasterGroup",InstanceCount=1,InstanceType=m1.large'
         cmd += ' InstanceGroupType=CORE,Name="CoreGroup",InstanceCount=1,' +\
-            'InstanceType=m1.xlarge,BidPrice=1.234'
+                'InstanceType=m1.xlarge,BidPrice=1.234'
         cmd += ' InstanceGroupType=TASK,Name="TaskGroup",InstanceCount=2,' +\
-            'InstanceType=m1.large'
+                'InstanceType=m1.large'
 
         expected_instance_groups = [
             {'InstanceRole': 'MASTER',

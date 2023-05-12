@@ -21,7 +21,7 @@ class TestGetApplicationRevisionLocationArguments(
     prefix = 'deploy get-application-revision --application-name foo '
 
     def test_s3_location(self):
-        cmd = self.prefix + '--s3-location bucket=b,key=k,bundleType=zip'
+        cmd = f'{self.prefix}--s3-location bucket=b,key=k,bundleType=zip'
         result = {
             'applicationName': 'foo',
             'revision': {
@@ -36,9 +36,6 @@ class TestGetApplicationRevisionLocationArguments(
         self.assert_params_for_cmd(cmd, result)
 
     def test_s3_location_with_etag(self):
-        cmd = self.prefix + (
-            '--s3-location bucket=b,key=k,'
-            'bundleType=zip,eTag=1234')
         result = {
             'applicationName': 'foo',
             'revision': {
@@ -51,12 +48,10 @@ class TestGetApplicationRevisionLocationArguments(
                 }
             }
         }
+        cmd = f'{self.prefix}--s3-location bucket=b,key=k,bundleType=zip,eTag=1234'
         self.assert_params_for_cmd(cmd, result)
 
     def test_s3_location_with_version(self):
-        cmd = self.prefix + (
-            '--s3-location bucket=b,key=k,'
-            'bundleType=zip,version=abcd')
         result = {
             'applicationName': 'foo',
             'revision': {
@@ -69,12 +64,10 @@ class TestGetApplicationRevisionLocationArguments(
                 }
             }
         }
+        cmd = f'{self.prefix}--s3-location bucket=b,key=k,bundleType=zip,version=abcd'
         self.assert_params_for_cmd(cmd, result)
 
     def test_s3_location_with_etag_and_version(self):
-        cmd = self.prefix + (
-            '--s3-location bucket=b,key=k,'
-            'bundleType=zip,eTag=1234,version=abcd')
         result = {
             'applicationName': 'foo',
             'revision': {
@@ -88,6 +81,7 @@ class TestGetApplicationRevisionLocationArguments(
                 }
             }
         }
+        cmd = f'{self.prefix}--s3-location bucket=b,key=k,bundleType=zip,eTag=1234,version=abcd'
         self.assert_params_for_cmd(cmd, result)
 
     def test_s3_location_json(self):
@@ -122,9 +116,6 @@ class TestGetApplicationRevisionLocationArguments(
         self.run_cmd(cmd, 255)
 
     def test_github_location_with_etag(self):
-        cmd = self.prefix + (
-            '--github-location repository=foo/bar,'
-            'commitId=1234')
         result = {
             'applicationName': 'foo',
             'revision': {
@@ -135,6 +126,7 @@ class TestGetApplicationRevisionLocationArguments(
                 }
             }
         }
+        cmd = f'{self.prefix}--github-location repository=foo/bar,commitId=1234'
         self.assert_params_for_cmd(cmd, result)
 
     def test_github_location_json(self):
@@ -160,7 +152,7 @@ class TestGetApplicationRevisionLocationArguments(
         self.run_cmd(cmd, 255)
 
     def test_github_location_missing_commit_id(self):
-        cmd = self.prefix + '--github-location repository=foo/bar'
+        cmd = f'{self.prefix}--github-location repository=foo/bar'
         self.run_cmd(cmd, 255)
 
 
@@ -170,7 +162,7 @@ class TestRegisterApplicationRevisionLocationArguments(
     prefix = 'deploy register-application-revision --application-name foo '
 
     def test_s3_location(self):
-        cmd = self.prefix + '--s3-location bucket=b,key=k,bundleType=zip'
+        cmd = f'{self.prefix}--s3-location bucket=b,key=k,bundleType=zip'
         result = {
             'applicationName': 'foo',
             'revision': {
@@ -185,9 +177,6 @@ class TestRegisterApplicationRevisionLocationArguments(
         self.assert_params_for_cmd(cmd, result)
 
     def test_s3_location_with_etag(self):
-        cmd = self.prefix + (
-            '--s3-location bucket=b,key=k,'
-            'bundleType=zip,eTag=1234')
         result = {
             'applicationName': 'foo',
             'revision': {
@@ -200,12 +189,10 @@ class TestRegisterApplicationRevisionLocationArguments(
                 }
             }
         }
+        cmd = f'{self.prefix}--s3-location bucket=b,key=k,bundleType=zip,eTag=1234'
         self.assert_params_for_cmd(cmd, result)
 
     def test_s3_location_with_version(self):
-        cmd = self.prefix + (
-            '--s3-location bucket=b,key=k,'
-            'bundleType=zip,version=abcd')
         result = {
             'applicationName': 'foo',
             'revision': {
@@ -218,12 +205,10 @@ class TestRegisterApplicationRevisionLocationArguments(
                 }
             }
         }
+        cmd = f'{self.prefix}--s3-location bucket=b,key=k,bundleType=zip,version=abcd'
         self.assert_params_for_cmd(cmd, result)
 
     def test_s3_location_with_etag_and_version(self):
-        cmd = self.prefix + (
-            '--s3-location bucket=b,key=k,'
-            'bundleType=zip,eTag=1234,version=abcd')
         result = {
             'applicationName': 'foo',
             'revision': {
@@ -237,6 +222,7 @@ class TestRegisterApplicationRevisionLocationArguments(
                 }
             }
         }
+        cmd = f'{self.prefix}--s3-location bucket=b,key=k,bundleType=zip,eTag=1234,version=abcd'
         self.assert_params_for_cmd(cmd, result)
 
     def test_s3_location_json(self):
@@ -271,9 +257,6 @@ class TestRegisterApplicationRevisionLocationArguments(
         self.run_cmd(cmd, 255)
 
     def test_github_location_with_etag(self):
-        cmd = self.prefix + (
-            '--github-location repository=foo/bar,'
-            'commitId=1234')
         result = {
             'applicationName': 'foo',
             'revision': {
@@ -284,6 +267,7 @@ class TestRegisterApplicationRevisionLocationArguments(
                 }
             }
         }
+        cmd = f'{self.prefix}--github-location repository=foo/bar,commitId=1234'
         self.assert_params_for_cmd(cmd, result)
 
     def test_github_location_json(self):
@@ -309,7 +293,7 @@ class TestRegisterApplicationRevisionLocationArguments(
         self.run_cmd(cmd, 255)
 
     def test_github_location_missing_commit_id(self):
-        cmd = self.prefix + '--github-location repository=foo/bar'
+        cmd = f'{self.prefix}--github-location repository=foo/bar'
         self.run_cmd(cmd, 255)
 
 
@@ -321,7 +305,7 @@ class TestCreateDeploymentLocationArguments(
         '--deployment-group bar ')
 
     def test_s3_location(self):
-        cmd = self.prefix + '--s3-location bucket=b,key=k,bundleType=zip'
+        cmd = f'{self.prefix}--s3-location bucket=b,key=k,bundleType=zip'
         result = {
             'applicationName': 'foo',
             'deploymentGroupName': 'bar',
@@ -337,9 +321,6 @@ class TestCreateDeploymentLocationArguments(
         self.assert_params_for_cmd(cmd, result)
 
     def test_s3_location_with_etag(self):
-        cmd = self.prefix + (
-            '--s3-location bucket=b,key=k,'
-            'bundleType=zip,eTag=1234')
         result = {
             'applicationName': 'foo',
             'deploymentGroupName': 'bar',
@@ -353,12 +334,10 @@ class TestCreateDeploymentLocationArguments(
                 }
             }
         }
+        cmd = f'{self.prefix}--s3-location bucket=b,key=k,bundleType=zip,eTag=1234'
         self.assert_params_for_cmd(cmd, result)
 
     def test_s3_location_with_version(self):
-        cmd = self.prefix + (
-            '--s3-location bucket=b,key=k,'
-            'bundleType=zip,version=abcd')
         result = {
             'applicationName': 'foo',
             'deploymentGroupName': 'bar',
@@ -372,12 +351,10 @@ class TestCreateDeploymentLocationArguments(
                 }
             }
         }
+        cmd = f'{self.prefix}--s3-location bucket=b,key=k,bundleType=zip,version=abcd'
         self.assert_params_for_cmd(cmd, result)
 
     def test_s3_location_with_etag_and_version(self):
-        cmd = self.prefix + (
-            '--s3-location bucket=b,key=k,'
-            'bundleType=zip,eTag=1234,version=abcd')
         result = {
             'applicationName': 'foo',
             'deploymentGroupName': 'bar',
@@ -392,6 +369,7 @@ class TestCreateDeploymentLocationArguments(
                 }
             }
         }
+        cmd = f'{self.prefix}--s3-location bucket=b,key=k,bundleType=zip,eTag=1234,version=abcd'
         self.assert_params_for_cmd(cmd, result)
 
     def test_s3_location_json(self):
@@ -427,9 +405,6 @@ class TestCreateDeploymentLocationArguments(
         self.run_cmd(cmd, 255)
 
     def test_github_location_with_etag(self):
-        cmd = self.prefix + (
-            '--github-location repository=foo/bar,'
-            'commitId=1234')
         result = {
             'applicationName': 'foo',
             'deploymentGroupName': 'bar',
@@ -441,6 +416,7 @@ class TestCreateDeploymentLocationArguments(
                 }
             }
         }
+        cmd = f'{self.prefix}--github-location repository=foo/bar,commitId=1234'
         self.assert_params_for_cmd(cmd, result)
 
     def test_github_location_json(self):
@@ -467,7 +443,7 @@ class TestCreateDeploymentLocationArguments(
         self.run_cmd(cmd, 255)
 
     def test_github_location_missing_commit_id(self):
-        cmd = self.prefix + '--github-location repository=foo/bar'
+        cmd = f'{self.prefix}--github-location repository=foo/bar'
         self.run_cmd(cmd, 255)
 
 

@@ -40,8 +40,7 @@ class ParamError(Exception):
         :param message: The error message to display to the user.
 
         """
-        full_message = ("Error parsing parameter '%s': %s" %
-                        (cli_name, message))
+        full_message = f"Error parsing parameter '{cli_name}': {message}"
         super(ParamError, self).__init__(full_message)
         self.cli_name = cli_name
         self.message = message
@@ -72,11 +71,12 @@ def unpack_argument(session, service_name, operation_name, cli_argument, value):
     param_name = getattr(cli_argument, 'name', 'anonymous')
 
     value_override = session.emit_first_non_none_response(
-        'load-cli-arg.%s.%s.%s' % (service_name,
-                                   operation_name,
-                                   param_name),
-        param=cli_argument, value=value, service_name=service_name,
-        operation_name=operation_name)
+        f'load-cli-arg.{service_name}.{operation_name}.{param_name}',
+        param=cli_argument,
+        value=value,
+        service_name=service_name,
+        operation_name=operation_name,
+    )
 
     if value_override is not None:
         value = value_override
@@ -130,14 +130,14 @@ def _detect_shape_structure(param, stack):
             elif len(sub_types) > 1 and all(p == 'scalar' for p in sub_types):
                 return 'structure(scalars)'
             else:
-                return 'structure(%s)' % ', '.join(sorted(set(sub_types)))
+                return f"structure({', '.join(sorted(set(sub_types)))})"
         elif param.type_name == 'list':
-            return 'list-%s' % _detect_shape_structure(param.member, stack)
+            return f'list-{_detect_shape_structure(param.member, stack)}'
         elif param.type_name == 'map':
             if param.value.type_name in SCALAR_TYPES:
                 return 'map-scalar'
             else:
-                return 'map-%s' % _detect_shape_structure(param.value, stack)
+                return f'map-{_detect_shape_structure(param.value, stack)}'
     finally:
         stack.pop()
 
@@ -175,7 +175,7 @@ def _unpack_cli_arg(argument_model, value, cli_name):
 
 def _unpack_complex_cli_arg(argument_model, value, cli_name):
     type_name = argument_model.type_name
-    if type_name == 'structure' or type_name == 'map':
+    if type_name in ['structure', 'map']:
         if value.lstrip()[0] == '{':
             try:
                 return json.loads(value, object_pairs_hook=OrderedDict)
@@ -212,9 +212,9 @@ def _unpack_complex_cli_arg(argument_model, value, cli_name):
 def unpack_scalar_cli_arg(argument_model, value, cli_name=''):
     # Note the cli_name is used strictly for error reporting.  It's
     # not required to use unpack_scalar_cli_arg
-    if argument_model.type_name == 'integer' or argument_model.type_name == 'long':
+    if argument_model.type_name in ['integer', 'long']:
         return int(value)
-    elif argument_model.type_name == 'float' or argument_model.type_name == 'double':
+    elif argument_model.type_name in ['float', 'double']:
         # TODO: losing precision on double types
         return float(value)
     elif argument_model.type_name == 'blob' and \
@@ -286,32 +286,28 @@ class ParamShorthand(object):
         parse_method = self.get_parse_method_for_param(cli_argument, value)
         if parse_method is None:
             return
-        else:
-            try:
-                LOG.debug("Using %s for param %s", parse_method,
-                          cli_argument.cli_name)
-                parsed = getattr(self, parse_method)(
-                    cli_argument.argument_model, value)
-            except ParamSyntaxError as e:
-                docgen = ParamShorthandDocGen()
-                example_usage = docgen.generate_shorthand_example(cli_argument)
-                raise ParamError(cli_argument.cli_name, "should be: %s" % example_usage)
-            except (ParamError, ParamUnknownKeyError) as e:
-                # The shorthand parse methods don't have the cli_name,
-                # so any ParamError won't have this value.  To accomodate
-                # this, ParamErrors are caught and reraised with the cli_name
-                # injected.
-                raise ParamError(cli_argument.cli_name, str(e))
-            return parsed
+        try:
+            LOG.debug("Using %s for param %s", parse_method,
+                      cli_argument.cli_name)
+            parsed = getattr(self, parse_method)(
+                cli_argument.argument_model, value)
+        except ParamSyntaxError as e:
+            docgen = ParamShorthandDocGen()
+            example_usage = docgen.generate_shorthand_example(cli_argument)
+            raise ParamError(cli_argument.cli_name, f"should be: {example_usage}")
+        except (ParamError, ParamUnknownKeyError) as e:
+            # The shorthand parse methods don't have the cli_name,
+            # so any ParamError won't have this value.  To accomodate
+            # this, ParamErrors are caught and reraised with the cli_name
+            # injected.
+            raise ParamError(cli_argument.cli_name, str(e))
+        return parsed
 
     def get_parse_method_for_param(self, cli_argument, value=None):
         # We first need to make sure this is a parameter that qualifies
         # for simplification.  The first short-circuit case is if it looks
         # like json we immediately return.
-        if isinstance(value, list):
-            check_val = value[0]
-        else:
-            check_val = value
+        check_val = value[0] if isinstance(value, list) else value
         if isinstance(check_val, six.string_types) and check_val.strip().startswith(
                 ('[', '{')):
             LOG.debug("Param %s looks like JSON, not considered for "
@@ -322,16 +318,15 @@ class ParamShorthand(object):
         # to help with debugging why the shorthand may not work, for
         # example list-structure(list-structure(scalars))
         LOG.debug('Detected structure: {0}'.format(structure))
-        parse_method = self.SHORTHAND_SHAPES.get(structure)
-        return parse_method
+        return self.SHORTHAND_SHAPES.get(structure)
 
     def _get_example_fn(self, param):
-        doc_fn = None
         shape_structure = detect_shape_structure(param)
-        method = self.SHORTHAND_SHAPES.get(shape_structure)
-        if method:
-            doc_fn = getattr(self, '_docs' + method, None)
-        return doc_fn
+        return (
+            getattr(self, f'_docs{method}', None)
+            if (method := self.SHORTHAND_SHAPES.get(shape_structure))
+            else None
+        )
 
     def add_example_fn(self, arg_name, help_command, **kwargs):
         """
@@ -342,7 +337,7 @@ class ParamShorthand(object):
         """
         argument = help_command.arg_table[arg_name]
         model = argument.argument_model
-        LOG.debug('Adding example fn for: %s' % arg_name)
+        LOG.debug(f'Adding example fn for: {arg_name}')
         doc_fn = self._get_example_fn(model)
         # XXX: fix this, don't set attributes on argument objects.
         argument.example_fn = doc_fn
@@ -359,12 +354,7 @@ class ParamShorthand(object):
         return parsed
 
     def _struct_scalar_list_parse(self, param, value):
-        # Create a mapping of argument name -> argument object
-        args = {}
-        for member_name, arg in param.members.items():
-            # Arg name -> arg object lookup
-            args[member_name] = arg
-
+        args = dict(param.members.items())
         parts = self._split_on_commas(value)
         current_parsed = {}
         current_key = None
@@ -398,11 +388,7 @@ class ParamShorthand(object):
 
     def _list_scalar_parse(self, param, value):
         single_param_name = list(param.member.members.keys())[0]
-        parsed = []
-        # We know that value is a list in this case.
-        for v in value:
-            parsed.append({single_param_name: v})
-        return parsed
+        return [{single_param_name: v} for v in value]
 
     def _list_key_value_parse(self, param, value):
         # param is a list param.
@@ -429,11 +415,11 @@ class ParamShorthand(object):
 
     def _is_special_case_key_value(self, param, value):
         members = param.members
-        if len(param.members) == 1:
-            if list(members.keys())[0] == 'Value' and \
-                    '=' not in value:
-                return True
-        return False
+        return (
+            len(param.members) == 1
+            and list(members.keys())[0] == 'Value'
+            and '=' not in value
+        )
 
     def _key_value_parse(self, param, value):
         # The expected structure is:
@@ -465,8 +451,7 @@ class ParamShorthand(object):
 
     def _create_name_to_params(self, param):
         if param.type_name == 'structure':
-            return dict([(member_name, p) for member_name, p
-                         in param.members.items()])
+            return dict(list(param.members.items()))
         elif param.type_name == 'map' and hasattr(param.key, 'enum'):
             return dict([(v, None) for v in param.key.enum])
 
@@ -498,10 +483,9 @@ class ParamShorthandDocGen(object):
         """
         structure = detect_shape_structure(cli_argument.argument_model)
         parse_method_name = self.SHORTHAND_SHAPES.get(structure)
-        doc_method_name = '_docs%s' % parse_method_name
+        doc_method_name = f'_docs{parse_method_name}'
         method = getattr(self, doc_method_name)
-        doc_string = method(cli_argument)
-        return doc_string
+        return method(cli_argument)
 
     def _docs_list_scalar_parse(self, cli_argument):
         cli_name = cli_argument.cli_name
@@ -509,17 +493,16 @@ class ParamShorthandDocGen(object):
         # We know based on the SHORTHAND_SHAPES that this is a
         # structure with a single member, so we can safely say:
         member_name = list(structure_members.keys())[0]
-        return '%s %s1 %s2 %s3' % (cli_name, member_name,
-                                   member_name, member_name)
+        return f'{cli_name} {member_name}1 {member_name}2 {member_name}3'
 
     def _docs_key_value_parse(self, cli_argument):
         cli_name = cli_argument.cli_name
         model = cli_argument.argument_model
-        s = '%s ' % cli_name
+        s = f'{cli_name} '
         if model.type_name == 'structure':
             members_dict = model.members
             member_names = list(members_dict.keys())
-            s += ','.join(['%s=value' % name for name in member_names])
+            s += ','.join([f'{name}=value' for name in member_names])
         elif model.type_name == 'map':
             s += 'key_name=string,key_name2=string'
             if self._has_enum_values(model.key):
@@ -531,27 +514,31 @@ class ParamShorthandDocGen(object):
 
     def _docs_list_key_value_parse(self, cli_argument):
         s = "Key value pairs, with multiple values separated by a space.\n"
-        s += '%s ' % cli_argument.cli_name
+        s += f'{cli_argument.cli_name} '
         members = cli_argument.argument_model.member.members
-        pair = ','.join(['%s=%s' % (member_name, shape.type_name)
-                         for member_name, shape in members.items()])
-        pair += ' %s' % pair
+        pair = ','.join(
+            [
+                f'{member_name}={shape.type_name}'
+                for member_name, shape in members.items()
+            ]
+        )
+        pair += f' {pair}'
         s += pair
         return s
 
     def _docs_list_scalar_list_parse(self, cli_argument):
         s = ('Key value pairs, where values are separated by commas, '
              'and multiple pairs are separated by spaces.\n')
-        s += '%s ' % cli_argument.cli_name
+        s += f'{cli_argument.cli_name} '
         pair = self._generate_struct_list_scalar_docs(
             cli_argument.argument_model.member.members)
-        pair += ' %s' % pair
+        pair += f' {pair}'
         s += pair
         return s
 
     def _docs_struct_scalar_list_parse(self, cli_argument):
         s = ('Key value pairs, where values are separated by commas.\n')
-        s += '%s ' % cli_argument.cli_name
+        s += f'{cli_argument.cli_name} '
         s += self._generate_struct_list_scalar_docs(
             cli_argument.argument_model.members)
         return s
@@ -561,13 +548,13 @@ class ParamShorthandDocGen(object):
         list_params = list(self._get_list_params(members_dict))
         pair = ''
         for member_name, param in scalar_params:
-            pair += '%s=%s1,' % (member_name, param.type_name)
+            pair += f'{member_name}={param.type_name}1,'
         for member_name, param in list_params[:-1]:
             param_type = param.member.type_name
-            pair += '%s=%s1,%s2,' % (member_name, param_type, param_type)
+            pair += f'{member_name}={param_type}1,{param_type}2,'
         member_name, last_param = list_params[-1]
         param_type = last_param.member.type_name
-        pair += '%s=%s1,%s2' % (member_name, param_type, param_type)
+        pair += f'{member_name}={param_type}1,{param_type}2'
         return pair
 
     def _get_scalar_params(self, members_dict):

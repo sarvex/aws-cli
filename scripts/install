@@ -40,8 +40,7 @@ def run(cmd):
                          stderr=subprocess.PIPE)
     stdout, stderr = p.communicate()
     if p.returncode != 0:
-        raise BadRCError("Bad rc (%s) for cmd '%s': %s" % (
-            p.returncode, cmd, stdout + stderr))
+        raise BadRCError(f"Bad rc ({p.returncode}) for cmd '{cmd}': {stdout + stderr}")
     return stdout
 
 
@@ -50,12 +49,7 @@ def bin_path():
     Get the system's binary path, either `bin` on reasonable
     systems or `Scripts` on Windows.
     """
-    path = 'bin'
-
-    if platform.system() == 'Windows':
-        path = 'Scripts'
-
-    return path
+    return 'Scripts' if platform.system() == 'Windows' else 'bin'
 
 
 def create_install_structure(working_dir, install_dir):
@@ -76,14 +70,11 @@ def _create_virtualenv(location, working_dir):
         # We know that virtualenv is the only dir in this directory
         # so we can listdir()[0] it.
         with cd(os.listdir('.')[0]):
-            run('%s virtualenv.py --python %s %s' % (sys.executable,
-                                                     sys.executable,
-                                                     location))
+            run(f'{sys.executable} virtualenv.py --python {sys.executable} {location}')
 
 
 def create_working_dir():
-    d = tempfile.mkdtemp()
-    return d
+    return tempfile.mkdtemp()
 
 
 def pip_install_packages(install_dir):
@@ -94,13 +85,14 @@ def pip_install_packages(install_dir):
     pip_script = os.path.join(install_dir, bin_path(), 'pip')
 
     with cd(PACKAGES_DIR):
-        run('%s install --no-index --find-links file://%s %s' % (
-            pip_script, PACKAGES_DIR, cli_tarball))
+        run(
+            f'{pip_script} install --no-index --find-links file://{PACKAGES_DIR} {cli_tarball}'
+        )
 
 
 def create_symlink(real_location, symlink_name):
     if os.path.isfile(symlink_name):
-        print("Symlink already exists: %s" % symlink_name)
+        print(f"Symlink already exists: {symlink_name}")
         print("Removing symlink.")
         os.remove(symlink_name)
     symlink_dir_name = os.path.dirname(symlink_name)
@@ -129,9 +121,9 @@ def main():
     pip_install_packages(opts.install_dir)
     real_location = os.path.join(opts.install_dir, bin_path(), 'aws')
     if opts.bin_location and create_symlink(real_location, opts.bin_location):
-        print("You can now run: %s --version" % opts.bin_location)
+        print(f"You can now run: {opts.bin_location} --version")
     else:
-        print("You can now run: %s --version" % real_location)
+        print(f"You can now run: {real_location} --version")
 
 
 if __name__ == '__main__':

@@ -65,10 +65,9 @@ class TestDisableHBaseBackups(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(cmdline, result)
 
     def test_disable_hbase_backups_none(self):
-        args = ' --cluster-id j-ABCD'
-        cmdline = self.prefix + args
         expected_error_msg = '\nShould specify at least one of --full' +\
-                             ' and --incremental.\n'
+                                 ' and --incremental.\n'
+        cmdline = f'{self.prefix} --cluster-id j-ABCD'
         result = self.run_cmd(cmdline, 255)
 
         self.assertEquals(expected_error_msg, result[1])

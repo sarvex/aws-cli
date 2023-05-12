@@ -33,10 +33,7 @@ class _FromFile(object):
         self.filename = None
         if paths:
             self.filename = os.path.join(*paths)
-        if 'root_module' in kwargs:
-            self.root_module = kwargs['root_module']
-        else:
-            self.root_module = awscli
+        self.root_module = kwargs.get('root_module', awscli)
 
 
 class BasicCommand(CLICommand):
@@ -155,18 +152,14 @@ class BasicCommand(CLICommand):
             # If this parameter has a schema defined, then allow plugins
             # a chance to process and override its value.
             if self._should_allow_plugins_override(cli_argument, value):
-                override = self._session\
-                    .emit_first_non_none_response(
-                        'process-cli-arg.%s.%s' % ('custom', self.name),
-                        cli_argument=cli_argument, value=value, operation=None)
+                override = self._session.emit_first_non_none_response(
+                    f'process-cli-arg.custom.{self.name}',
+                    cli_argument=cli_argument,
+                    value=value,
+                    operation=None,
+                )
 
-                if override is not None:
-                    # A plugin supplied a conversion
-                    value = override
-                else:
-                    # Unpack the argument, which is a string, into the
-                    # correct Python type (dict, list, etc)
-                    value = unpack_cli_arg(cli_argument, value)
+                value = unpack_cli_arg(cli_argument, value) if override is None else override
                 self._validate_value_against_schema(
                     cli_argument.argument_model, value)
 
@@ -178,7 +171,7 @@ class BasicCommand(CLICommand):
             # No subcommand was specified so call the main
             # function for this top level command.
             if remaining:
-                raise ValueError("Unknown options: %s" % ','.join(remaining))
+                raise ValueError(f"Unknown options: {','.join(remaining)}")
             return self._run_main(parsed_args, parsed_globals)
         else:
             return self.subcommand_table[parsed_args.subcommand](remaining,
@@ -188,10 +181,9 @@ class BasicCommand(CLICommand):
         validate_parameters(value, model)
 
     def _should_allow_plugins_override(self, param, value):
-        if (param and param.argument_model is not None and
-            value is not None):
-            return True
-        return False
+        return bool(
+            (param and param.argument_model is not None and value is not None)
+        )
 
     def _run_main(self, parsed_args, parsed_globals):
         # Subclasses should implement this method.
@@ -210,11 +202,13 @@ class BasicCommand(CLICommand):
             subcommand_name = subcommand['name']
             subcommand_class = subcommand['command_class']
             subcommand_table[subcommand_name] = subcommand_class(self._session)
-        self._session.emit('building-command-table.%s' % self.NAME,
-                           command_table=subcommand_table,
-                           session=self._session,
-                           command_object=self)
-        self._add_lineage(subcommand_table)        
+        self._session.emit(
+            f'building-command-table.{self.NAME}',
+            command_table=subcommand_table,
+            session=self._session,
+            command_object=self,
+        )
+        self._add_lineage(subcommand_table)
         return subcommand_table
 
     def _display_help(self, parsed_args, parsed_globals):
@@ -233,16 +227,16 @@ class BasicCommand(CLICommand):
         Create the command table into a form that can be handled by the
         BasicDocHandler.
         """
-        commands = {}
-        for command in self.SUBCOMMANDS:
-            commands[command['name']] = command['command_class'](self._session)
+        commands = {
+            command['name']: command['command_class'](self._session)
+            for command in self.SUBCOMMANDS
+        }
         self._add_lineage(commands)
         return commands
 
     def _build_arg_table(self):
         arg_table = OrderedDict()
-        self._session.emit('building-arg-table.%s' % self.NAME,
-                           arg_table=self.ARG_TABLE)
+        self._session.emit(f'building-arg-table.{self.NAME}', arg_table=self.ARG_TABLE)
         for arg_data in self.ARG_TABLE:
 
             # If a custom schema was passed in, create the argument_model
@@ -329,19 +323,19 @@ class BasicHelp(HelpCommand):
 
     def _get_doc_contents(self, attr_name):
         value = getattr(self, attr_name)
-        if isinstance(value, BasicCommand.FROM_FILE):
-            if value.filename is not None:
-                trailing_path = value.filename
-            else:
-                trailing_path = os.path.join(self.name, attr_name + '.rst')
-            root_module = value.root_module
-            doc_path = os.path.join(
-                os.path.abspath(os.path.dirname(root_module.__file__)), 'examples',
-                trailing_path)
-            with _open(doc_path) as f:
-                return f.read()
-        else:
+        if not isinstance(value, BasicCommand.FROM_FILE):
             return value
+        trailing_path = (
+            value.filename
+            if value.filename is not None
+            else os.path.join(self.name, f'{attr_name}.rst')
+        )
+        root_module = value.root_module
+        doc_path = os.path.join(
+            os.path.abspath(os.path.dirname(root_module.__file__)), 'examples',
+            trailing_path)
+        with _open(doc_path) as f:
+            return f.read()
 
     def __call__(self, args, parsed_globals):
         # Create an event handler for a Provider Document
@@ -377,33 +371,29 @@ class BasicDocHandler(OperationDocumentEventHandler):
             self.doc.writeln(help_command.synopsis)
 
     def doc_synopsis_option(self, arg_name, help_command, **kwargs):
-        if not help_command.synopsis:
-            doc = help_command.doc
-            argument = help_command.arg_table[arg_name]
-            if argument.synopsis:
-                option_str = argument.synopsis
-            elif argument.group_name in self._arg_groups:
-                if argument.group_name in self._documented_arg_groups:
-                    # This arg is already documented so we can move on.
-                    return
-                option_str = ' | '.join(
-                    [a.cli_name for a in
-                     self._arg_groups[argument.group_name]])
-                self._documented_arg_groups.append(argument.group_name)
-            elif argument.cli_type_name == 'boolean':
-                option_str = '%s' % argument.cli_name
-            elif argument.nargs == '+':
-                option_str = "%s <value> [<value>...]" % argument.cli_name
-            else:
-                option_str = '%s <value>' % argument.cli_name
-            if not (argument.required or argument.positional_arg):
-                option_str = '[%s]' % option_str
-            doc.writeln('%s' % option_str)
-
+        if help_command.synopsis:
+            return
+        doc = help_command.doc
+        argument = help_command.arg_table[arg_name]
+        if argument.synopsis:
+            option_str = argument.synopsis
+        elif argument.group_name in self._arg_groups:
+            if argument.group_name in self._documented_arg_groups:
+                # This arg is already documented so we can move on.
+                return
+            option_str = ' | '.join(
+                [a.cli_name for a in
+                 self._arg_groups[argument.group_name]])
+            self._documented_arg_groups.append(argument.group_name)
+        elif argument.cli_type_name == 'boolean':
+            option_str = f'{argument.cli_name}'
+        elif argument.nargs == '+':
+            option_str = f"{argument.cli_name} <value> [<value>...]"
         else:
-            # A synopsis has been provided so we don't need to write
-            # anything here.
-            pass
+            option_str = f'{argument.cli_name} <value>'
+        if not (argument.required or argument.positional_arg):
+            option_str = f'[{option_str}]'
+        doc.writeln(f'{option_str}')
 
     def doc_synopsis_end(self, help_command, **kwargs):
         if not help_command.synopsis:

@@ -47,16 +47,14 @@ class Completer(object):
         retval = []
         if self.current_word.startswith('-'):
             cw = self.current_word.lstrip('-')
-            l = ['--' + n for n in self.main_options
-                 if n.startswith(cw)]
-            retval = l
+            return [f'--{n}' for n in self.main_options if n.startswith(cw)]
         elif self.current_word == 'aws':
-            retval = self._documented(self.main_hc.command_table)
+            return self._documented(self.main_hc.command_table)
         else:
             # Otherwise, see if they have entered a partial command name
-            retval = self._documented(self.main_hc.command_table,
-                                      startswith=self.current_word)
-        return retval
+            return self._documented(
+                self.main_hc.command_table, startswith=self.current_word
+            )
 
     def _complete_command(self):
         retval = []
@@ -65,11 +63,9 @@ class Completer(object):
                 retval = self._documented(self.command_hc.command_table)
         elif self.current_word.startswith('-'):
             retval = self._find_possible_options()
-        else:
-            # See if they have entered a partial command name
-            if self.command_hc:
-                retval = self._documented(self.command_hc.command_table,
-                                          startswith=self.current_word)
+        elif self.command_hc:
+            retval = self._documented(self.command_hc.command_table,
+                                      startswith=self.current_word)
         return retval
 
     def _documented(self, table, startswith=None):
@@ -106,7 +102,7 @@ class Completer(object):
                 if stripped_opt in all_options:
                     all_options.remove(stripped_opt)
         cw = self.current_word.lstrip('-')
-        possibles = ['--' + n for n in all_options if n.startswith(cw)]
+        possibles = [f'--{n}' for n in all_options if n.startswith(cw)]
         if len(possibles) == 1 and possibles[0] == self.current_word:
             return self._complete_option(possibles[0])
         return possibles
@@ -122,12 +118,9 @@ class Completer(object):
         #     - options
         self.command_name = None
         self.subcommand_name = None
-        self.words = self.cmdline[0:self.point].split()
+        self.words = self.cmdline[:self.point].split()
         self.current_word = self.words[-1]
-        if len(self.words) >= 2:
-            self.previous_word = self.words[-2]
-        else:
-            self.previous_word = None
+        self.previous_word = self.words[-2] if len(self.words) >= 2 else None
         self.non_options = [w for w in self.words if not w.startswith('-')]
         self.options = [w for w in self.words if w.startswith('-')]
         # Look for a command name in the non_options
@@ -157,7 +150,7 @@ class Completer(object):
             # If we didn't find any command names in the cmdline
             # lets try to complete provider options
             return self._complete_provider()
-        if self.command_name and not self.subcommand_name:
+        if not self.subcommand_name:
             return self._complete_command()
         return self._complete_subcommand()
 
@@ -174,6 +167,6 @@ if __name__ == '__main__':
     elif len(sys.argv) == 2:
         cmdline = sys.argv[1]
     else:
-        print('usage: %s <cmdline> <point>' % sys.argv[0])
+        print(f'usage: {sys.argv[0]} <cmdline> <point>')
         sys.exit(1)
     print(complete(cmdline, point))

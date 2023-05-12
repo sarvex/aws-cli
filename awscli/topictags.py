@@ -178,20 +178,16 @@ class TopicTagDB(object):
             field_body = field.getElementsByTagName('field_body')[0]
             # Get the tag.
             tag = field_name.firstChild.nodeValue
-            if tag in self.VALID_TAGS:
-                # Get the value of the tag.
-                values = field_body.childNodes[0].firstChild.nodeValue
-                # Seperate values into a list by splitting at commas
-                tag_values = values.split(',')
-                # Strip the white space around each of these values.
-                for i in range(len(tag_values)):
-                    tag_values[i] = tag_values[i].strip()
-                self._add_tag_to_dict(topic_name, tag, tag_values)
-            else:
-                raise ValueError(
-                    "Tag %s found under topic %s is not supported."
-                    % (tag, topic_name)
-                )
+            if tag not in self.VALID_TAGS:
+                raise ValueError(f"Tag {tag} found under topic {topic_name} is not supported.")
+            # Get the value of the tag.
+            values = field_body.childNodes[0].firstChild.nodeValue
+            # Seperate values into a list by splitting at commas
+            tag_values = values.split(',')
+            # Strip the white space around each of these values.
+            for i in range(len(tag_values)):
+                tag_values[i] = tag_values[i].strip()
+            self._add_tag_to_dict(topic_name, tag, tag_values)
 
     def _add_topic_name_to_dict(self, topic_name):
         # This method adds a topic name to the dictionary if it does not

@@ -111,9 +111,7 @@ class LocalFileGeneratorTest(unittest.TestCase):
                             'dir_op': False, 'use_src_name': False}
         params = {'region': 'us-east-1'}
         files = FileGenerator(self.client, '').call(input_local_file)
-        result_list = []
-        for filename in files:
-            result_list.append(filename)
+        result_list = list(files)
         size, last_update = get_file_stat(self.local_file)
         file_stat = FileStat(src=self.local_file, dest='bucket/text1.txt',
                              compare_key='text1.txt', size=size,
@@ -135,16 +133,13 @@ class LocalFileGeneratorTest(unittest.TestCase):
                            'dir_op': True, 'use_src_name': True}
         params = {'region': 'us-east-1'}
         files = FileGenerator(self.client, '').call(input_local_dir)
-        result_list = []
-        for filename in files:
-            result_list.append(filename)
+        result_list = list(files)
         size, last_update = get_file_stat(self.local_file)
         file_stat = FileStat(src=self.local_file, dest='bucket/text1.txt',
                              compare_key='text1.txt', size=size,
                              last_update=last_update, src_type='local',
                              dest_type='s3', operation_name='')
-        path = self.local_dir + 'another_directory' + os.sep \
-            + 'text2.txt'
+        path = f'{self.local_dir}another_directory{os.sep}text2.txt'
         size, last_update = get_file_stat(path)
         file_stat2 = FileStat(src=path,
                               dest='bucket/another_directory/text2.txt',
@@ -233,9 +228,10 @@ class TestThrowsWarning(unittest.TestCase):
         return_val = file_gen.triggers_warning(filename)
         self.assertTrue(return_val)
         warning_message = file_gen.result_queue.get()
-        self.assertEqual(warning_message.message,
-                         ("warning: Skipping file %s. File does not exist." %
-                          filename))
+        self.assertEqual(
+            warning_message.message,
+            f"warning: Skipping file {filename}. File does not exist.",
+        )
 
     def test_no_read_access(self):
         file_gen = FileGenerator(self.client, '', False)
@@ -323,9 +319,7 @@ class TestSymlinksIgnoreFiles(unittest.TestCase):
                            'dir_op': True, 'use_src_name': True}
         file_stats = FileGenerator(self.client, '', False).call(input_local_dir)
         self.filenames.sort()
-        result_list = []
-        for file_stat in file_stats:
-            result_list.append(getattr(file_stat, 'src'))
+        result_list = [getattr(file_stat, 'src') for file_stat in file_stats]
         self.assertEqual(len(result_list), len(self.filenames))
         # Just check to make sure the right local files are generated.
         for i in range(len(result_list)):
@@ -347,9 +341,7 @@ class TestSymlinksIgnoreFiles(unittest.TestCase):
         file_stats = file_gen.call(input_local_dir)
         all_filenames = self.filenames + self.symlink_files
         all_filenames.sort()
-        result_list = []
-        for file_stat in file_stats:
-            result_list.append(getattr(file_stat, 'src'))
+        result_list = [getattr(file_stat, 'src') for file_stat in file_stats]
         self.assertEqual(len(result_list), len(all_filenames))
         # Just check to make sure the right local files are generated.
         for i in range(len(result_list)):
@@ -369,9 +361,7 @@ class TestSymlinksIgnoreFiles(unittest.TestCase):
         file_stats = FileGenerator(self.client, '', True).call(input_local_dir)
         all_filenames = self.filenames + self.symlink_files
         all_filenames.sort()
-        result_list = []
-        for file_stat in file_stats:
-            result_list.append(getattr(file_stat, 'src'))
+        result_list = [getattr(file_stat, 'src') for file_stat in file_stats]
         self.assertEqual(len(result_list), len(all_filenames))
         # Just check to make sure the right local files are generated.
         for i in range(len(result_list)):
@@ -413,8 +403,9 @@ class TestListFilesLocally(unittest.TestCase):
         open(p(self.directory, 'test', 'foo.txt'), 'w').close()
 
         file_generator = FileGenerator(None, None, None)
-        values = list(el[0] for el in file_generator.list_files(
-            self.directory, dir_op=True))
+        values = [
+            el[0] for el in file_generator.list_files(self.directory, dir_op=True)
+        ]
         ref_vals = list(sorted(values,
                                key=lambda items: items.replace(os.sep, '/')))
         self.assertEqual(values, ref_vals)
@@ -433,8 +424,9 @@ class TestListFilesLocally(unittest.TestCase):
         open(p(self.directory, u'a\u0300a', u'\u00e6'), 'w').close()
 
         file_generator = FileGenerator(None, None, None)
-        values = list(el[0] for el in file_generator.list_files(
-            self.directory, dir_op=True))
+        values = [
+            el[0] for el in file_generator.list_files(self.directory, dir_op=True)
+        ]
         expected_order = [os.path.join(self.directory, el) for el in [
             u"a",
             u"a\u0300",
@@ -451,9 +443,7 @@ class TestListFilesLocally(unittest.TestCase):
 
 class TestNormalizeSort(unittest.TestCase):
     def test_normalize_sort(self):
-        names = ['xyz123456789',
-                 'xyz1' + os.path.sep + 'test',
-                 'xyz' + os.path.sep + 'test']
+        names = ['xyz123456789', f'xyz1{os.path.sep}test', f'xyz{os.path.sep}test']
         ref_names = [names[2], names[1], names[0]]
         filegenerator = FileGenerator(None, None, None)
         filegenerator.normalize_sort(names, os.path.sep, '/')
@@ -476,8 +466,8 @@ class S3FileGeneratorTest(BaseAWSCommandParamsTest):
         super(S3FileGeneratorTest, self).setUp()
         self.client = self.driver.session.create_client('s3')
         self.bucket = 'foo'
-        self.file1 = self.bucket + '/' + 'text1.txt'
-        self.file2 = self.bucket + '/' + 'another_directory/text2.txt'
+        self.file1 = f'{self.bucket}/text1.txt'
+        self.file2 = f'{self.bucket}/another_directory/text2.txt'
 
     def test_s3_file(self):
         """
@@ -494,9 +484,7 @@ class S3FileGeneratorTest(BaseAWSCommandParamsTest):
 
         file_gen = FileGenerator(self.client, '')
         files = file_gen.call(input_s3_file)
-        result_list = []
-        for filename in files:
-            result_list.append(filename)
+        result_list = list(files)
         file_stat = FileStat(src=self.file1, dest='text1.txt',
                              compare_key='text1.txt',
                              size=result_list[0].size,
@@ -532,9 +520,12 @@ class S3FileGeneratorTest(BaseAWSCommandParamsTest):
         zero size files are ignored.
         Note: Size and last update are not tested because s3 generates them.
         """
-        input_s3_file = {'src': {'path': self.bucket + '/', 'type': 's3'},
-                         'dest': {'path': '', 'type': 'local'},
-                         'dir_op': True, 'use_src_name': True}
+        input_s3_file = {
+            'src': {'path': f'{self.bucket}/', 'type': 's3'},
+            'dest': {'path': '', 'type': 'local'},
+            'dir_op': True,
+            'use_src_name': True,
+        }
         params = {'region': 'us-east-1'}
         files = FileGenerator(self.client, '').call(input_s3_file)
 
@@ -545,17 +536,17 @@ class S3FileGeneratorTest(BaseAWSCommandParamsTest):
                 {"Key": "text1.txt", "Size": 10,
                  "LastModified": "2013-01-09T20:45:49.000Z"}]}]
         self.patch_make_request()
-        result_list = []
-        for filename in files:
-            result_list.append(filename)
-        file_stat = FileStat(src=self.file2,
-                             dest='another_directory' + os.sep +
-                             'text2.txt',
-                             compare_key='another_directory/text2.txt',
-                             size=result_list[0].size,
-                             last_update=result_list[0].last_update,
-                             src_type='s3',
-                             dest_type='local', operation_name='')
+        result_list = list(files)
+        file_stat = FileStat(
+            src=self.file2,
+            dest=f'another_directory{os.sep}text2.txt',
+            compare_key='another_directory/text2.txt',
+            size=result_list[0].size,
+            last_update=result_list[0].last_update,
+            src_type='s3',
+            dest_type='local',
+            operation_name='',
+        )
         file_stat2 = FileStat(src=self.file1,
                               dest='text1.txt',
                               compare_key='text1.txt',
@@ -575,9 +566,12 @@ class S3FileGeneratorTest(BaseAWSCommandParamsTest):
         the directory itself is included because it is a delete command
         Note: Size and last update are not tested because s3 generates them.
         """
-        input_s3_file = {'src': {'path': self.bucket + '/', 'type': 's3'},
-                         'dest': {'path': '', 'type': 'local'},
-                         'dir_op': True, 'use_src_name': True}
+        input_s3_file = {
+            'src': {'path': f'{self.bucket}/', 'type': 's3'},
+            'dest': {'path': '', 'type': 'local'},
+            'dir_op': True,
+            'use_src_name': True,
+        }
         self.parsed_responses = [{
             "CommonPrefixes": [], "Contents": [
                 {"Key": "another_directory/", "Size": 0,
@@ -588,24 +582,27 @@ class S3FileGeneratorTest(BaseAWSCommandParamsTest):
                  "LastModified": "2013-01-09T20:45:49.000Z"}]}]
         self.patch_make_request()
         files = FileGenerator(self.client, 'delete').call(input_s3_file)
-        result_list = []
-        for filename in files:
-            result_list.append(filename)
-
-        file_stat1 = FileStat(src=self.bucket + '/another_directory/',
-                              dest='another_directory' + os.sep,
-                              compare_key='another_directory/',
-                              size=result_list[0].size,
-                              last_update=result_list[0].last_update,
-                              src_type='s3',
-                              dest_type='local', operation_name='delete')
-        file_stat2 = FileStat(src=self.file2,
-                              dest='another_directory' + os.sep + 'text2.txt',
-                              compare_key='another_directory/text2.txt',
-                              size=result_list[1].size,
-                              last_update=result_list[1].last_update,
-                              src_type='s3',
-                              dest_type='local', operation_name='delete')
+        result_list = list(files)
+        file_stat1 = FileStat(
+            src=f'{self.bucket}/another_directory/',
+            dest=f'another_directory{os.sep}',
+            compare_key='another_directory/',
+            size=result_list[0].size,
+            last_update=result_list[0].last_update,
+            src_type='s3',
+            dest_type='local',
+            operation_name='delete',
+        )
+        file_stat2 = FileStat(
+            src=self.file2,
+            dest=f'another_directory{os.sep}text2.txt',
+            compare_key='another_directory/text2.txt',
+            size=result_list[1].size,
+            last_update=result_list[1].last_update,
+            src_type='s3',
+            dest_type='local',
+            operation_name='delete',
+        )
         file_stat3 = FileStat(src=self.file1,
                               dest='text1.txt',
                               compare_key='text1.txt',

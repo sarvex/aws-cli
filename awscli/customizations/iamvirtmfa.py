@@ -57,7 +57,7 @@ class FileArgument(StatefulArgument):
         outfile = os.path.expandvars(value)
         outfile = os.path.expanduser(outfile)
         if not os.access(os.path.dirname(os.path.abspath(outfile)), os.W_OK):
-            raise ValueError('Unable to write to file: %s' % outfile)
+            raise ValueError(f'Unable to write to file: {outfile}')
         self._value = outfile
 
 

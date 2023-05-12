@@ -91,21 +91,15 @@ def human_readable_to_bytes(value):
 
     """
     value = value.lower()
-    if value[-2:] == 'ib':
-        # Assume IEC suffix.
-        suffix = value[-3:].lower()
-    else:
-        suffix = value[-2:].lower()
+    suffix = value[-3:].lower() if value[-2:] == 'ib' else value[-2:].lower()
     has_size_identifier = (
         len(value) >= 2 and suffix in SIZE_SUFFIX)
-    if not has_size_identifier:
-        try:
-            return int(value)
-        except ValueError:
-            raise ValueError("Invalid size value: %s" % value)
-    else:
-        multiplier = SIZE_SUFFIX[suffix]
-        return int(value[:-len(suffix)]) * multiplier
+    if has_size_identifier:
+        return int(value[:-len(suffix)]) * SIZE_SUFFIX[suffix]
+    try:
+        return int(value)
+    except ValueError:
+        raise ValueError(f"Invalid size value: {value}")
 
 
 class AppendFilter(argparse.Action):
@@ -161,14 +155,11 @@ class StablePriorityQueue(queue.Queue):
     """
     def __init__(self, maxsize=0, max_priority=20):
         queue.Queue.__init__(self, maxsize=maxsize)
-        self.priorities = [deque([]) for i in range(max_priority + 1)]
+        self.priorities = [deque([]) for _ in range(max_priority + 1)]
         self.default_priority = max_priority
 
     def _qsize(self):
-        size = 0
-        for bucket in self.priorities:
-            size += len(bucket)
-        return size
+        return sum(len(bucket) for bucket in self.priorities)
 
     def _put(self, item):
         priority = min(getattr(item, 'PRIORITY', self.default_priority),
@@ -190,9 +181,7 @@ def find_bucket_key(s3_path):
     """
     s3_components = s3_path.split('/')
     bucket = s3_components[0]
-    s3_key = ""
-    if len(s3_components) > 1:
-        s3_key = '/'.join(s3_components[1:])
+    s3_key = '/'.join(s3_components[1:]) if len(s3_components) > 1 else ""
     return bucket, s3_key
 
 
@@ -218,8 +207,7 @@ def get_file_stat(path):
         stats = os.stat(path)
         update_time = datetime.fromtimestamp(stats.st_mtime, tzlocal())
     except (ValueError, IOError) as e:
-        raise ValueError('Could not retrieve file stat of "%s": %s' % (
-            path, e))
+        raise ValueError(f'Could not retrieve file stat of "{path}": {e}')
     return stats.st_size, update_time
 
 
@@ -242,12 +230,10 @@ def find_dest_path_comp_key(files, src_path=None):
     else:
         rel_path = src_path.split(sep_table[src_type])[-1]
     compare_key = rel_path.replace(sep_table[src_type], '/')
+    dest_path = dest['path']
     if files['use_src_name']:
-        dest_path = dest['path']
         dest_path += rel_path.replace(sep_table[src_type],
                                       sep_table[dest_type])
-    else:
-        dest_path = dest['path']
     return dest_path, compare_key
 
 
@@ -260,9 +246,8 @@ def check_etag(etag, fileobj):
     m = hashlib.md5()
     for chunk in iter(get_chunk, b''):
         m.update(chunk)
-    if '-' not in etag:
-        if etag != m.hexdigest():
-            raise MD5Error
+    if '-' not in etag and etag != m.hexdigest():
+        raise MD5Error
 
 
 def create_warning(path, error_message):
@@ -270,11 +255,9 @@ def create_warning(path, error_message):
     This creates a ``PrintTask`` for whenever a warning is to be thrown.
     """
     print_string = "warning: "
-    print_string = print_string + "Skipping file " + path + ". "
-    print_string = print_string + error_message
-    warning_message = PrintTask(message=print_string, error=False,
-                                warning=True)
-    return warning_message
+    print_string = f"{print_string}Skipping file {path}. "
+    print_string += error_message
+    return PrintTask(message=print_string, error=False, warning=True)
 
 
 def find_chunksize(size, current_chunksize):
@@ -289,10 +272,7 @@ def find_chunksize(size, current_chunksize):
     while num_parts > MAX_PARTS:
         chunksize *= 2
         num_parts = int(math.ceil(size / float(chunksize)))
-    if chunksize > MAX_SINGLE_UPLOAD_SIZE:
-        return MAX_SINGLE_UPLOAD_SIZE
-    else:
-        return chunksize
+    return min(chunksize, MAX_SINGLE_UPLOAD_SIZE)
 
 
 class MultiCounter(object):
@@ -387,12 +367,12 @@ class ReadFileChunk(object):
             remaining = self._size - self._amount_read
             data = self._fileobj.read(remaining)
             self._amount_read += remaining
-            return data
         else:
             actual_amount = min(self._size - self._amount_read, amount)
             data = self._fileobj.read(actual_amount)
             self._amount_read += actual_amount
-            return data
+
+        return data
 
     def seek(self, where):
         self._fileobj.seek(self._start_byte + where)
@@ -447,15 +427,15 @@ class BucketLister(object):
         # Contents list.  However, botocore does not know that the encoding
         # type needs to be urldecoded.
         with ScopedEventHandler(self._client.meta.events,
-                                'after-call.s3.ListObjects',
-                                self._decode_keys,
-                                'BucketListerDecodeKeys'):
+                                    'after-call.s3.ListObjects',
+                                    self._decode_keys,
+                                    'BucketListerDecodeKeys'):
             paginator = self._client.get_paginator('list_objects')
             pages = paginator.paginate(**kwargs)
             for page in pages:
                 contents = page.get('Contents', [])
                 for content in contents:
-                    source_path = bucket + '/' + content['Key']
+                    source_path = f'{bucket}/' + content['Key']
                     size = content['Size']
                     last_update = self._date_parser(content['LastModified'])
                     yield source_path, size, last_update

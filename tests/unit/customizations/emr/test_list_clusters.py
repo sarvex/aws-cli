@@ -21,8 +21,6 @@ class TestListClusters(BaseAWSCommandParamsTest):
     prefix = 'emr list-clusters '
 
     def test_list_active_clusters(self):
-        args = '--active'
-        cmdline = self.prefix + args
         result = {'ClusterStates': ['STARTING',
                                     'BOOTSTRAPPING',
                                     'RUNNING',
@@ -30,37 +28,33 @@ class TestListClusters(BaseAWSCommandParamsTest):
                                     'TERMINATING'
                                     ]
                   }
+        cmdline = f'{self.prefix}--active'
         self.assert_params_for_cmd(cmdline, result)
 
     def test_list_terminated_clusters(self):
-        args = '--terminated'
-        cmdline = self.prefix + args
         result = {'ClusterStates': ['TERMINATED']}
+        cmdline = f'{self.prefix}--terminated'
         self.assert_params_for_cmd(cmdline, result)
 
     def test_list_failed_clusters(self):
-        args = '--failed'
-        cmdline = self.prefix + args
         result = {'ClusterStates': ['TERMINATED_WITH_ERRORS']}
+        cmdline = f'{self.prefix}--failed'
         self.assert_params_for_cmd(cmdline, result)
 
     def test_list_multiple_states(self):
-        args = '--cluster-states RUNNING WAITING TERMINATED'
-        cmdline = self.prefix + args
         result = {'ClusterStates': ['RUNNING', 'WAITING', 'TERMINATED']}
+        cmdline = f'{self.prefix}--cluster-states RUNNING WAITING TERMINATED'
         self.assert_params_for_cmd(cmdline, result)
 
     def test_exclusive_states_filters(self):
-        args = '--active --failed'
-        cmdline = self.prefix + args
         expected_error_msg = (
             '\naws: error: You can specify only one of the cluster state '
             'filters: --cluster-states, --active, --terminated, --failed.\n')
+        cmdline = f'{self.prefix}--active --failed'
         result = self.run_cmd(cmdline, 255)
         self.assertEquals(expected_error_msg, result[1])
 
-        args = '--cluster-states STARTING RUNNING --terminated'
-        cmdline = self.prefix + args
+        cmdline = f'{self.prefix}--cluster-states STARTING RUNNING --terminated'
         expected_error_msg = (
             '\naws: error: You can specify only one of the cluster state '
             'filters: --cluster-states, --active, --terminated, --failed.\n')

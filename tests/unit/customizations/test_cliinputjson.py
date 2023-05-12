@@ -58,7 +58,7 @@ class TestCliInputJSONArgument(unittest.TestCase):
     def test_add_to_call_parameters_with_file(self):
         parsed_args = mock.Mock()
         # Make the value a file with JSON located inside.
-        parsed_args.cli_input_json = 'file://' + self.temp_file
+        parsed_args.cli_input_json = f'file://{self.temp_file}'
         call_parameters = {}
         self.argument.add_to_call_parameters(
             service_operation=None, call_parameters=call_parameters,
@@ -69,7 +69,7 @@ class TestCliInputJSONArgument(unittest.TestCase):
     def test_add_to_call_parameters_bad_json(self):
         parsed_args = mock.Mock()
         # Create a bad JSON input
-        parsed_args.cli_input_json = self.input_json + ','
+        parsed_args.cli_input_json = f'{self.input_json},'
         call_parameters = {}
         with self.assertRaises(ParamError):
             self.argument.add_to_call_parameters(

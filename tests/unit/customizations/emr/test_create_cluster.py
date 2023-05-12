@@ -20,8 +20,6 @@ from mock import patch
 from botocore.vendored import requests
 
 
-DEFAULT_CLUSTER_NAME = "Development Cluster"
-
 DEFAULT_INSTANCE_GROUPS_ARG = (
     'InstanceGroupType=MASTER,Name=MASTER,'
     'InstanceCount=1,InstanceType=m1.large '
@@ -50,8 +48,7 @@ DEFAULT_INSTANCE_GROUPS = \
       'InstanceType': 'm1.large'
       }]
 
-DEFAULT_CMD = ('emr create-cluster --ami-version 3.0.4 --use-default-roles'
-               ' --instance-groups ' + DEFAULT_INSTANCE_GROUPS_ARG + ' ')
+DEFAULT_CMD = f'emr create-cluster --ami-version 3.0.4 --use-default-roles --instance-groups {DEFAULT_INSTANCE_GROUPS_ARG} '
 
 DEFAULT_INSTANCES = {'KeepJobFlowAliveWhenNoSteps': True,
                      'TerminationProtected': False,
@@ -309,6 +306,7 @@ CONSTRUCTED_RESULT = {
     "ClusterId": "j-XXXX"
 }
 
+DEFAULT_CLUSTER_NAME = "Development Cluster"
 DEFAULT_RESULT = \
     {
         'Name': DEFAULT_CLUSTER_NAME,
@@ -335,10 +333,9 @@ class TestCreateCluster(BaseAWSCommandParamsTest):
     prefix = 'emr create-cluster '
 
     def test_quick_start(self):
-        cmd = (self.prefix + '--ami-version 3.1.0 --instance-groups ' +
-               DEFAULT_INSTANCE_GROUPS_ARG)
+        cmd = f'{self.prefix}--ami-version 3.1.0 --instance-groups {DEFAULT_INSTANCE_GROUPS_ARG}'
         result = \
-            {
+                {
                 'Name': DEFAULT_CLUSTER_NAME,
                 'Instances': DEFAULT_INSTANCES,
                 'AmiVersion': '3.1.0',
@@ -373,29 +370,27 @@ class TestCreateCluster(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(cmd, result)
 
     def test_mutual_exclusive_use_default_roles_and_service_role(self):
-        cmd = (DEFAULT_CMD +
-               '--ec2-attributes InstanceProfile=Ec2_InstanceProfile')
         expected_error_msg = (
             '\naws: error: You cannot specify both --use-default-roles '
             'and --ec2-attributes InstanceProfile options together. Either '
             'choose --use-default-roles or use both --service-role <roleName>'
             ' and --ec2-attributes InstanceProfile=<profileName>.\n')
+        cmd = f'{DEFAULT_CMD}--ec2-attributes InstanceProfile=Ec2_InstanceProfile'
         result = self.run_cmd(cmd, 255)
         self.assertEquals(expected_error_msg, result[1])
 
     def test_mutual_exclusive_use_default_roles_and_instance_profile(self):
-        cmd = (DEFAULT_CMD + '--service-role ServiceRole '
-               '--ec2-attributes InstanceProfile=Ec2_InstanceProfile')
         expected_error_msg = (
             '\naws: error: You cannot specify both --use-default-roles '
             'and --service-role options together. Either choose '
             '--use-default-roles or use both --service-role <roleName> '
             'and --ec2-attributes InstanceProfile=<profileName>.\n')
+        cmd = f'{DEFAULT_CMD}--service-role ServiceRole --ec2-attributes InstanceProfile=Ec2_InstanceProfile'
         result = self.run_cmd(cmd, 255)
         self.assertEquals(expected_error_msg, result[1])
 
     def test_cluster_name_no_space(self):
-        cmd = DEFAULT_CMD + '--name MyCluster'
+        cmd = f'{DEFAULT_CMD}--name MyCluster'
         result = copy.deepcopy(DEFAULT_RESULT)
         result['Name'] = 'MyCluster'
         self.assert_params_for_cmd(cmd, result)
@@ -407,14 +402,14 @@ class TestCreateCluster(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(cmd, result)
 
     def test_ami_version(self):
-        cmd = DEFAULT_CMD + '--ami-version 3.0.4'
+        cmd = f'{DEFAULT_CMD}--ami-version 3.0.4'
         result = copy.deepcopy(DEFAULT_RESULT)
         result['AmiVersion'] = '3.0.4'
         self.assert_params_for_cmd(cmd, result)
 
     def test_log_uri(self):
         test_log_uri = 's3://test/logs'
-        cmd = DEFAULT_CMD + '--log-uri ' + test_log_uri
+        cmd = f'{DEFAULT_CMD}--log-uri {test_log_uri}'
         result = copy.deepcopy(DEFAULT_RESULT)
         result['LogUri'] = test_log_uri
         self.assert_params_for_cmd(cmd, result)
@@ -437,8 +432,7 @@ class TestCreateCluster(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(cmd, result)
 
     def test_auto_terminate_and_no_auto_terminate(self):
-        cmd = (DEFAULT_CMD + '--ami-version 3.0.4 ' +
-               '--auto-terminate --no-auto-terminate')
+        cmd = f'{DEFAULT_CMD}--ami-version 3.0.4 --auto-terminate --no-auto-terminate'
         expected_error_msg = (
             '\naws: error: cannot use both --no-auto-terminate and'
             ' --auto-terminate options together.\n')
@@ -446,7 +440,7 @@ class TestCreateCluster(BaseAWSCommandParamsTest):
         self.assertEquals(expected_error_msg, result[1])
 
     def test_termination_protected(self):
-        cmd = DEFAULT_CMD + '--termination-protected'
+        cmd = f'{DEFAULT_CMD}--termination-protected'
         result = copy.deepcopy(DEFAULT_RESULT)
         instances = copy.deepcopy(DEFAULT_INSTANCES)
         instances['TerminationProtected'] = True
@@ -454,30 +448,29 @@ class TestCreateCluster(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(cmd, result)
 
     def test_no_termination_protected(self):
-        cmd = DEFAULT_CMD + '--no-termination-protected'
+        cmd = f'{DEFAULT_CMD}--no-termination-protected'
         self.assert_params_for_cmd(cmd, DEFAULT_RESULT)
 
     def test_termination_protected_and_no_termination_protected(self):
-        cmd = DEFAULT_CMD + \
-            '--termination-protected --no-termination-protected'
         expected_error_msg = (
             '\naws: error: cannot use both --termination-protected'
             ' and --no-termination-protected options together.\n')
+        cmd = f'{DEFAULT_CMD}--termination-protected --no-termination-protected'
         result = self.run_cmd(cmd, 255)
         self.assertEquals(expected_error_msg, result[1])
 
     def test_visible_to_all_users(self):
-        cmd = DEFAULT_CMD + '--visible-to-all-users'
+        cmd = f'{DEFAULT_CMD}--visible-to-all-users'
         self.assert_params_for_cmd(cmd, DEFAULT_RESULT)
 
     def test_no_visible_to_all_users(self):
-        cmd = DEFAULT_CMD + '--no-visible-to-all-users'
+        cmd = f'{DEFAULT_CMD}--no-visible-to-all-users'
         result = copy.deepcopy(DEFAULT_RESULT)
         result['VisibleToAllUsers'] = False
         self.assert_params_for_cmd(cmd, result)
 
     def test_visible_to_all_users_and_no_visible_to_all_users(self):
-        cmd = DEFAULT_CMD + '--visible-to-all-users --no-visible-to-all-users'
+        cmd = f'{DEFAULT_CMD}--visible-to-all-users --no-visible-to-all-users'
         expected_error_msg = (
             '\naws: error: cannot use both --visible-to-all-users and '
             '--no-visible-to-all-users options together.\n')
@@ -494,11 +487,11 @@ class TestCreateCluster(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(cmd, result)
 
     def test_enable_debugging(self):
-        cmd = DEFAULT_CMD + '--log-uri s3://test/logs --enable-debugging'
+        cmd = f'{DEFAULT_CMD}--log-uri s3://test/logs --enable-debugging'
         result = copy.deepcopy(DEFAULT_RESULT)
         result['LogUri'] = 's3://test/logs'
         debugging_config = \
-            [{'Name': 'Setup Hadoop Debugging',
+                [{'Name': 'Setup Hadoop Debugging',
               'ActionOnFailure': 'TERMINATE_CLUSTER',
               'HadoopJarStep':
                 {'Args':
@@ -515,7 +508,7 @@ class TestCreateCluster(BaseAWSCommandParamsTest):
         cmd = DEFAULT_CMD + ('--log-uri s3://test/logs --enable-debugging '
                              '--region us-west-2')
         debugging_config = \
-            [{'Name': 'Setup Hadoop Debugging',
+                [{'Name': 'Setup Hadoop Debugging',
               'ActionOnFailure': 'TERMINATE_CLUSTER',
               'HadoopJarStep':
                 {'Args':
@@ -530,7 +523,7 @@ class TestCreateCluster(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(cmd, result)
 
     def test_enable_debugging_no_log_uri(self):
-        cmd = DEFAULT_CMD + '--enable-debugging'
+        cmd = f'{DEFAULT_CMD}--enable-debugging'
         expected_error_msg = (
             '\naws: error: LogUri not specified. You must specify a logUri'
             ' if you enable debugging when creating a cluster.\n')
@@ -538,8 +531,7 @@ class TestCreateCluster(BaseAWSCommandParamsTest):
         self.assertEquals(expected_error_msg, result[1])
 
     def test_enable_debugging_and_no_enable_debugging(self):
-        cmd = DEFAULT_CMD + '--enable-debugging --no-enable-debugging' + \
-            ' --log-uri s3://test/logs'
+        cmd = f'{DEFAULT_CMD}--enable-debugging --no-enable-debugging --log-uri s3://test/logs'
         expected_error_msg = (
             '\naws: error: cannot use both --enable-debugging and '
             '--no-enable-debugging options together.\n')
@@ -625,22 +617,16 @@ class TestCreateCluster(BaseAWSCommandParamsTest):
         self.assertEquals(expect_error_msg, result[1])
 
     def test_instance_groups_exclusive_parameter_validation_error(self):
-        cmd = (
-            'emr create-cluster --use-default-roles --ami-version 3.0.4 '
-            '--instance-type m1.large --instance-groups ' +
-            DEFAULT_INSTANCE_GROUPS_ARG)
         expect_error_msg = (
             '\naws: error: You may not specify --instance-type '
             'or --instance-count with --instance-groups, '
             'because --instance-type and --instance-count are '
             'shortcut options for --instance-groups.\n')
+        cmd = f'emr create-cluster --use-default-roles --ami-version 3.0.4 --instance-type m1.large --instance-groups {DEFAULT_INSTANCE_GROUPS_ARG}'
         result = self.run_cmd(cmd, 255)
         self.assertEquals(expect_error_msg, result[1])
 
-        cmd = (
-            'emr create-cluster --use-default-roles --ami-version 3.0.4 '
-            '--instance-type m1.large --instance-count 2 '
-            '--instance-groups ' + DEFAULT_INSTANCE_GROUPS_ARG)
+        cmd = f'emr create-cluster --use-default-roles --ami-version 3.0.4 --instance-type m1.large --instance-count 2 --instance-groups {DEFAULT_INSTANCE_GROUPS_ARG}'
         expect_error_msg = (
             '\naws: error: You may not specify --instance-type '
             'or --instance-count with --instance-groups, '
@@ -722,14 +708,13 @@ class TestCreateCluster(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(cmd, result)
 
     def test_ec2_attributes_az(self):
-        cmd = DEFAULT_CMD + '--ec2-attributes AvailabilityZone=us-east-1a'
+        cmd = f'{DEFAULT_CMD}--ec2-attributes AvailabilityZone=us-east-1a'
         result = copy.deepcopy(DEFAULT_RESULT)
         result['Instances']['Placement'] = {'AvailabilityZone': 'us-east-1a'}
         self.assert_params_for_cmd(cmd, result)
 
     def test_ec2_attributes_subnet_az_error(self):
-        cmd = DEFAULT_CMD + '--ec2-attributes ' + \
-            'SubnetId=subnet-123456,AvailabilityZone=us-east-1a'
+        cmd = f'{DEFAULT_CMD}--ec2-attributes SubnetId=subnet-123456,AvailabilityZone=us-east-1a'
         expect_error_msg = (
             '\naws: error: You may not specify both a SubnetId and an Availab'
             'ilityZone (placement) because ec2SubnetId implies a placement.\n')
@@ -764,7 +749,7 @@ class TestCreateCluster(BaseAWSCommandParamsTest):
 
     # Bootstrap Actions test cases
     def test_bootstrap_actions_missing_path_error(self):
-        cmd = DEFAULT_CMD + '--bootstrap-actions Name=ba1,Args=arg1,arg2'
+        cmd = f'{DEFAULT_CMD}--bootstrap-actions Name=ba1,Args=arg1,arg2'
         stderr = self.run_cmd(cmd, 255)[1]
         self.assert_error_message_has_field_name(stderr, 'Path')
 
@@ -779,25 +764,24 @@ class TestCreateCluster(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(cmd, result)
 
     def test_bootstrap_actions_exceed_maximum_error(self):
-        cmd = DEFAULT_CMD + ' --bootstrap-actions'
+        cmd = f'{DEFAULT_CMD} --bootstrap-actions'
         ba_cmd = ' Path=s3://test/ba1,Name=ba1,Args=arg1,arg2,arg3'
-        for i in range(1, 18):
+        for _ in range(1, 18):
             cmd += ba_cmd
 
         expected_error_msg = '\naws: error: maximum number of ' +\
-                             'bootstrap actions for a cluster exceeded.\n'
+                                 'bootstrap actions for a cluster exceeded.\n'
         result = self.run_cmd(cmd, 255)
 
         self.assertEquals(expected_error_msg, result[1])
 
     def test_bootstrap_actions_exceed_maximum_with_applications_error(self):
-        cmd = DEFAULT_CMD + ' --applications Name=GANGLIA Name=HBASE' +\
-            ' Name=IMPALA,Args=arg1,arg2 --bootstrap-actions'
+        cmd = f'{DEFAULT_CMD} --applications Name=GANGLIA Name=HBASE Name=IMPALA,Args=arg1,arg2 --bootstrap-actions'
         ba_cmd = ' Path=s3://test/ba1,Name=ba1,Args=arg1,arg2,arg3'
-        for i in range(1, 15):
+        for _ in range(1, 15):
             cmd += ba_cmd
         expected_error_msg = '\naws: error: maximum number of ' +\
-                             'bootstrap actions for a cluster exceeded.\n'
+                                 'bootstrap actions for a cluster exceeded.\n'
         result = self.run_cmd(cmd, 255)
         self.assertEquals(expected_error_msg, result[1])
 
@@ -821,10 +805,10 @@ class TestCreateCluster(BaseAWSCommandParamsTest):
     def test_bootstrap_actions_from_json_file(self):
         data_path = os.path.join(
             os.path.dirname(__file__), 'input_bootstrap_actions.json')
-        cmd = DEFAULT_CMD + ' --bootstrap-actions file://' + data_path
+        cmd = f'{DEFAULT_CMD} --bootstrap-actions file://{data_path}'
         result = copy.deepcopy(DEFAULT_RESULT)
         result['BootstrapActions'] = \
-            [
+                [
                 {"Name": "Bootstrap Action 1",
                  "ScriptBootstrapAction":
                     {"Path": "s3://mybucket/test1",
@@ -840,16 +824,16 @@ class TestCreateCluster(BaseAWSCommandParamsTest):
 
     # Applications test cases
     def test_install_hive_with_defaults(self):
-        cmd = DEFAULT_CMD + '--applications Name=Hive'
+        cmd = f'{DEFAULT_CMD}--applications Name=Hive'
         result = copy.deepcopy(DEFAULT_RESULT)
         result['Steps'] = [INSTALL_HIVE_STEP]
         self.assert_params_for_cmd(cmd, result)
 
     def test_install_hive_with_profile_region(self):
         self.driver.session.set_config_variable('region', 'cn-north-1')
-        cmd = DEFAULT_CMD + '--applications Name=Hive'
+        cmd = f'{DEFAULT_CMD}--applications Name=Hive'
         HIVE_STEP = json.dumps(INSTALL_HIVE_STEP).\
-            replace('us-east-1', 'cn-north-1')
+                replace('us-east-1', 'cn-north-1')
         result = copy.deepcopy(DEFAULT_RESULT)
         result['Steps'] = [json.loads(HIVE_STEP)]
         self.assert_params_for_cmd(cmd, result)
@@ -865,19 +849,19 @@ class TestCreateCluster(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(cmdline, result)
 
     def test_install_pig_with_defaults(self):
-        cmd = DEFAULT_CMD + '--applications Name=Pig'
+        cmd = f'{DEFAULT_CMD}--applications Name=Pig'
         result = copy.deepcopy(DEFAULT_RESULT)
         result['Steps'] = [INSTALL_PIG_STEP]
         self.assert_params_for_cmd(cmd, result)
 
     def test_install_ganglia(self):
-        cmd = DEFAULT_CMD + '--applications Name=Ganglia'
+        cmd = f'{DEFAULT_CMD}--applications Name=Ganglia'
         result = copy.deepcopy(DEFAULT_RESULT)
         result['BootstrapActions'] = [INSTALL_GANGLIA_BA]
         self.assert_params_for_cmd(cmd, result)
 
     def test_install_impala_with_defaults(self):
-        cmd = DEFAULT_CMD + '--applications Name=Impala'
+        cmd = f'{DEFAULT_CMD}--applications Name=Impala'
         result = copy.deepcopy(DEFAULT_RESULT)
         result['BootstrapActions'] = [INSTALL_IMPALA_BA]
         self.assert_params_for_cmd(cmd, result)
@@ -893,7 +877,7 @@ class TestCreateCluster(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(cmd, result)
 
     def test_install_hbase(self):
-        cmd = DEFAULT_CMD + '--applications Name=hbase'
+        cmd = f'{DEFAULT_CMD}--applications Name=hbase'
         result = copy.deepcopy(DEFAULT_RESULT)
         result['BootstrapActions'] = [INSTALL_HBASE_BA]
         result['Steps'] = [INSTALL_HBASE_STEP]
@@ -928,13 +912,10 @@ class TestCreateCluster(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(cmd, result)
 
     def test_applications_all_types(self):
-        cmd = DEFAULT_CMD + (
-            '--applications '
-            'Name=hive Name=pig Name=ganglia Name=hbase Name=impala '
-            'Name=mapr,Args=--edition,m5,--version,3.0.2')
         ba_list = [INSTALL_GANGLIA_BA, INSTALL_HBASE_BA,
                    INSTALL_IMPALA_BA]
         step_list = [INSTALL_HIVE_STEP, INSTALL_PIG_STEP, INSTALL_HBASE_STEP]
+        cmd = f'{DEFAULT_CMD}--applications Name=hive Name=pig Name=ganglia Name=hbase Name=impala Name=mapr,Args=--edition,m5,--version,3.0.2'
         result = copy.deepcopy(DEFAULT_RESULT)
         result['Steps'] = step_list
         result['BootstrapActions'] = ba_list
@@ -944,10 +925,10 @@ class TestCreateCluster(BaseAWSCommandParamsTest):
     def test_applications_all_types_from_json_file(self):
         data_path = os.path.join(
             os.path.dirname(__file__), 'input_applications.json')
-        cmd = DEFAULT_CMD + '--applications file://' + data_path
+        cmd = f'{DEFAULT_CMD}--applications file://{data_path}'
         impala_ba = copy.deepcopy(INSTALL_IMPALA_BA)
         impala_ba['ScriptBootstrapAction']['Args'] += \
-            ['--impala-conf',
+                ['--impala-conf',
              'IMPALA_BACKEND_PORT=22001', 'IMPALA_MEM_LIMIT=70%']
         ba_list = [INSTALL_GANGLIA_BA, INSTALL_HBASE_BA,
                    impala_ba]
@@ -960,31 +941,26 @@ class TestCreateCluster(BaseAWSCommandParamsTest):
 
     # Steps test cases
     def test_wrong_step_type_error(self):
-        cmd = DEFAULT_CMD + '--steps Type=unknown'
+        cmd = f'{DEFAULT_CMD}--steps Type=unknown'
         expected_error_msg = (
             '\naws: error: The step type unknown is not supported.\n')
         result = self.run_cmd(cmd, 255)
         self.assertEquals(expected_error_msg, result[1])
 
     def test_default_step_type_name_action_on_failure(self):
-        cmd = DEFAULT_CMD + '--steps Jar=s3://mybucket/mytest.jar'
+        cmd = f'{DEFAULT_CMD}--steps Jar=s3://mybucket/mytest.jar'
         result = copy.deepcopy(DEFAULT_RESULT)
         result['Steps'] = [CUSTOM_JAR_STEP]
         self.assert_params_for_cmd(cmd, result)
 
     def test_custom_jar_step_missing_jar(self):
-        cmd = DEFAULT_CMD + '--steps Name=CustomJarMissingJar'
+        cmd = f'{DEFAULT_CMD}--steps Name=CustomJarMissingJar'
         expect_error_msg = '\naws: error: The following ' + \
-            'required parameters are missing for CustomJARStepConfig: Jar.\n'
+                'required parameters are missing for CustomJARStepConfig: Jar.\n'
         result = self.run_cmd(cmd, 255)
         self.assertEquals(expect_error_msg, result[1])
 
     def test_custom_jar_step_with_all_fields(self):
-        cmd = DEFAULT_CMD + '--steps ' + (
-            'Name=Custom,Type=Custom_JAR,'
-            'Jar=s3://mybucket/mytest.jar,'
-            'Args=arg1,arg2,MainClass=mymainclass,'
-            'ActionOnFailure=TERMINATE_CLUSTER')
         expected_steps = [
             {'Name': 'Custom',
              'ActionOnFailure': 'TERMINATE_CLUSTER',
@@ -994,12 +970,13 @@ class TestCreateCluster(BaseAWSCommandParamsTest):
                  'MainClass': 'mymainclass'}
              }
         ]
+        cmd = f'{DEFAULT_CMD}--steps Name=Custom,Type=Custom_JAR,Jar=s3://mybucket/mytest.jar,Args=arg1,arg2,MainClass=mymainclass,ActionOnFailure=TERMINATE_CLUSTER'
         result = copy.deepcopy(DEFAULT_RESULT)
         result['Steps'] = expected_steps
         self.assert_params_for_cmd(cmd, result)
 
     def test_streaming_step_with_default_fields(self):
-        cmd = DEFAULT_CMD + '--steps Type=Streaming,' + STREAMING_ARGS
+        cmd = f'{DEFAULT_CMD}--steps Type=Streaming,{STREAMING_ARGS}'
         result = copy.deepcopy(DEFAULT_RESULT)
         result['Steps'] = [
             {'Name': 'Streaming program',
@@ -1009,9 +986,9 @@ class TestCreateCluster(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(cmd, result)
 
     def test_streaming_step_missing_args(self):
-        cmd = DEFAULT_CMD + '--steps Type=Streaming'
+        cmd = f'{DEFAULT_CMD}--steps Type=Streaming'
         expect_error_msg = '\naws: error: The following ' + \
-            'required parameters are missing for StreamingStepConfig: Args.\n'
+                'required parameters are missing for StreamingStepConfig: Args.\n'
         result = self.run_cmd(cmd, 255)
         self.assertEquals(expect_error_msg, result[1])
 
@@ -1029,16 +1006,15 @@ class TestCreateCluster(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(cmd, result)
 
     def test_hive_step_with_default_fields(self):
-        cmd = DEFAULT_CMD + (
-            '--applications Name=Hive --steps Type=Hive,' + HIVE_BASIC_ARGS)
+        cmd = f'{DEFAULT_CMD}--applications Name=Hive --steps Type=Hive,{HIVE_BASIC_ARGS}'
         result = copy.deepcopy(DEFAULT_RESULT)
         result['Steps'] = [INSTALL_HIVE_STEP, HIVE_DEFAULT_STEP]
         self.assert_params_for_cmd(cmd, result)
 
     def test_hive_step_missing_args(self):
-        cmd = DEFAULT_CMD + '--applications Name=Hive --steps Type=Hive'
+        cmd = f'{DEFAULT_CMD}--applications Name=Hive --steps Type=Hive'
         expect_error_msg = '\naws: error: The following ' + \
-            'required parameters are missing for HiveStepConfig: Args.\n'
+                'required parameters are missing for HiveStepConfig: Args.\n'
         result = self.run_cmd(cmd, 255)
         self.assertEquals(expect_error_msg, result[1])
 
@@ -1046,33 +1022,28 @@ class TestCreateCluster(BaseAWSCommandParamsTest):
         test_step_config = (
             'Type=Hive,ActionOnFailure=CANCEL_AND_WAIT,'
             'Name=HiveBasicStep,' + HIVE_BASIC_ARGS)
-        cmd = DEFAULT_CMD + (
-            '--applications Name=Hive --steps ' + test_step_config)
+        cmd = f'{DEFAULT_CMD}--applications Name=Hive --steps {test_step_config}'
         result = copy.deepcopy(DEFAULT_RESULT)
         install_step = copy.deepcopy(INSTALL_HIVE_STEP)
         result['Steps'] = [install_step, HIVE_BASIC_STEP]
         self.assert_params_for_cmd(cmd, result)
 
     def test_pig_step_with_default_fields(self):
-        cmd = DEFAULT_CMD + (
-            '--applications Name=Pig --steps Type=Pig,' + PIG_BASIC_ARGS)
+        cmd = f'{DEFAULT_CMD}--applications Name=Pig --steps Type=Pig,{PIG_BASIC_ARGS}'
         result = copy.deepcopy(DEFAULT_RESULT)
         result['Steps'] = [INSTALL_PIG_STEP, PIG_DEFAULT_STEP]
         self.assert_params_for_cmd(cmd, result)
 
     def test_pig_missing_args(self):
-        cmd = DEFAULT_CMD + '--applications Name=Pig --steps Type=Pig'
+        cmd = f'{DEFAULT_CMD}--applications Name=Pig --steps Type=Pig'
         expect_error_msg = '\naws: error: The following ' + \
-            'required parameters are missing for PigStepConfig: Args.\n'
+                'required parameters are missing for PigStepConfig: Args.\n'
         result = self.run_cmd(cmd, 255)
         self.assertEquals(expect_error_msg, result[1])
 
     def test_pig_step_with_all_fields(self):
-        test_step_config = (
-            'Name=PigBasicStep,Type=Pig,' + PIG_BASIC_ARGS +
-            ',ActionOnFailure=CANCEL_AND_WAIT')
-        cmd = DEFAULT_CMD + (
-            '--applications Name=Pig --steps ' + test_step_config)
+        test_step_config = f'Name=PigBasicStep,Type=Pig,{PIG_BASIC_ARGS},ActionOnFailure=CANCEL_AND_WAIT'
+        cmd = f'{DEFAULT_CMD}--applications Name=Pig --steps {test_step_config}'
         result = copy.deepcopy(DEFAULT_RESULT)
         install_step = copy.deepcopy(INSTALL_PIG_STEP)
         result['Steps'] = [install_step, PIG_BASIC_STEP]
@@ -1088,18 +1059,15 @@ class TestCreateCluster(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(cmd, result)
 
     def test_impala_missing_args(self):
-        cmd = DEFAULT_CMD + '--applications Name=Impala --steps Type=Impala'
+        cmd = f'{DEFAULT_CMD}--applications Name=Impala --steps Type=Impala'
         expect_error_msg = '\naws: error: The following ' + \
-            'required parameters are missing for ImpalaStepConfig: Args.\n'
+                'required parameters are missing for ImpalaStepConfig: Args.\n'
         result = self.run_cmd(cmd, 255)
         self.assertEquals(expect_error_msg, result[1])
 
     def test_impala_step_with_all_fields(self):
-        test_step_config = (
-            'Name=ImpalaBasicStep,Type=Impala,' + IMPALA_BASIC_ARGS +
-            ',ActionOnFailure=CANCEL_AND_WAIT')
-        cmd = DEFAULT_CMD + (
-            '--applications Name=Impala --steps ' + test_step_config)
+        test_step_config = f'Name=ImpalaBasicStep,Type=Impala,{IMPALA_BASIC_ARGS},ActionOnFailure=CANCEL_AND_WAIT'
+        cmd = f'{DEFAULT_CMD}--applications Name=Impala --steps {test_step_config}'
         result = copy.deepcopy(DEFAULT_RESULT)
         result['BootstrapActions'] = [INSTALL_IMPALA_BA]
         step = copy.deepcopy(IMPALA_DEFAULT_STEP)
@@ -1139,41 +1107,27 @@ class TestCreateCluster(BaseAWSCommandParamsTest):
         self.assert_params_for_cmd(cmd, result)
 
     def test_empty_step_args(self):
-        cmd = DEFAULT_CMD + '--steps Type=Streaming,Args= '
+        cmd = f'{DEFAULT_CMD}--steps Type=Streaming,Args= '
         expect_error_msg = ('\naws: error: The prameter Args cannot '
                             'be an empty list.\n')
         result = self.run_cmd(cmd, 255)
         self.assertEquals(expect_error_msg, result[1])
 
-        cmd = DEFAULT_CMD + '--steps Type=Pig,Args= '
+        cmd = f'{DEFAULT_CMD}--steps Type=Pig,Args= '
         result = self.run_cmd(cmd, 255)
         self.assertEquals(expect_error_msg, result[1])
 
-        cmd = DEFAULT_CMD + '--steps Type=Hive,Args= '
+        cmd = f'{DEFAULT_CMD}--steps Type=Hive,Args= '
         result = self.run_cmd(cmd, 255)
         self.assertEquals(expect_error_msg, result[1])
 
-        cmd = DEFAULT_CMD + '--steps Args= '
+        cmd = f'{DEFAULT_CMD}--steps Args= '
         expect_error_msg = ('\naws: error: The following required parameters '
                             'are missing for CustomJARStepConfig: Jar.\n')
         result = self.run_cmd(cmd, 255)
         self.assertEquals(expect_error_msg, result[1])
 
     def test_missing_applications_for_steps(self):
-        cmd = DEFAULT_CMD +\
-            '--steps Jar=s3://test/customJar.jar ' +\
-            'Type=HIVE,Args=-f,s3://test/hive ' +\
-            'Type=PIG,Args=-f,s3://test/pig ' +\
-            'Type=IMPALA,Args=--impala-script,s3://test/impala ' +\
-            'Type=Streaming,Args=-files,s3://test/mapper.py,-mapper,' +\
-            'mapper.py,-reducer,aggregator,-input,s3://test/input,-output,' +\
-            's3://test/output ' +\
-            'Type=PIG,Args=-f,s3://test/pig2 ' +\
-            'Type=IMPALA,Args=--impala-script,s3://test/impala2 ' +\
-            'Type=PIG,Args=-f,s3://test/pig3 ' +\
-            ' Jar=s3://test/customJar2.jar ' +\
-            ' --applications Name=Hive'
-
         expected_error_msg1 = (
             '\naws: error: Some of the steps require the following'
             ' applications to be installed: Impala, Pig. '
@@ -1182,25 +1136,15 @@ class TestCreateCluster(BaseAWSCommandParamsTest):
             '\naws: error: Some of the steps require the following'
             ' applications to be installed: Pig, Impala. '
             'Please install the applications using --applications.\n')
+        cmd = f'{DEFAULT_CMD}--steps Jar=s3://test/customJar.jar Type=HIVE,Args=-f,s3://test/hive Type=PIG,Args=-f,s3://test/pig Type=IMPALA,Args=--impala-script,s3://test/impala Type=Streaming,Args=-files,s3://test/mapper.py,-mapper,mapper.py,-reducer,aggregator,-input,s3://test/input,-output,s3://test/output Type=PIG,Args=-f,s3://test/pig2 Type=IMPALA,Args=--impala-script,s3://test/impala2 Type=PIG,Args=-f,s3://test/pig3  Jar=s3://test/customJar2.jar  --applications Name=Hive'
         result = self.run_cmd(cmd, 255)
 
-        if(result[1] == expected_error_msg1 or
-           result[1] == expected_error_msg2):
+        if result[1] in [expected_error_msg1, expected_error_msg2]:
             self.assertTrue(True)
         else:
             self.assertTrue(False)
 
     def test_missing_applications_with_hbase(self):
-        cmd = DEFAULT_CMD +\
-            '--steps Jar=s3://test/customJar.jar ' +\
-            'Type=HIVE,Args=-f,s3://test/hive ' +\
-            'Type=PIG,Args=-f,s3://test/pig ' +\
-            'Type=IMPALA,Args=--impala-script,s3://test/impala ' +\
-            'Type=Streaming,Args=-files,s3://test/mapper.py,-mapper,' +\
-            'mapper.py,-reducer,aggregator,-input,s3://test/input,-output,' +\
-            's3://test/output' + ' --applications Name=Hive Name=Pig' +\
-            ' --restore-from-hbase-backup Dir=s3://myBucket/myDir'
-
         expected_error_msg1 = (
             '\naws: error: Some of the steps require the following'
             ' applications to be installed: Hbase, Impala. '
@@ -1209,10 +1153,10 @@ class TestCreateCluster(BaseAWSCommandParamsTest):
             '\naws: error: Some of the steps require the following'
             ' applications to be installed: Impala, Hbase. '
             'Please install the applications using --applications.\n')
+        cmd = f'{DEFAULT_CMD}--steps Jar=s3://test/customJar.jar Type=HIVE,Args=-f,s3://test/hive Type=PIG,Args=-f,s3://test/pig Type=IMPALA,Args=--impala-script,s3://test/impala Type=Streaming,Args=-files,s3://test/mapper.py,-mapper,mapper.py,-reducer,aggregator,-input,s3://test/input,-output,s3://test/output --applications Name=Hive Name=Pig --restore-from-hbase-backup Dir=s3://myBucket/myDir'
         result = self.run_cmd(cmd, 255)
 
-        if(result[1] == expected_error_msg1 or
-           result[1] == expected_error_msg2):
+        if result[1] in [expected_error_msg1, expected_error_msg2]:
             self.assertTrue(True)
         else:
             self.assertTrue(False)
@@ -1226,12 +1170,8 @@ class TestCreateCluster(BaseAWSCommandParamsTest):
         self.assertEquals(result_json, CONSTRUCTED_RESULT)
 
     def test_emr_fs_config(self):
-        cmd = DEFAULT_CMD + \
-            '--emrfs Consistent=true,SSE=false,RetryCount=10,' +\
-            'RetryPeriod=3,Args=[fs.s3.serverSideEncryptionAlgorithm=' +\
-            'AES256,fs.s3.sleepTimeSeconds=30]'
         emf_fs_ba_config = \
-            {'Name': 'Setup EMRFS',
+                {'Name': 'Setup EMRFS',
              'ScriptBootstrapAction':
                 {'Path': ('s3://us-east-1.elasticmapreduce/'
                           'bootstrap-actions/configure-hadoop'),
@@ -1249,13 +1189,14 @@ class TestCreateCluster(BaseAWSCommandParamsTest):
                           'fs.s3.sleepTimeSeconds=30']
                  }
              }
+        cmd = f'{DEFAULT_CMD}--emrfs Consistent=true,SSE=false,RetryCount=10,RetryPeriod=3,Args=[fs.s3.serverSideEncryptionAlgorithm=AES256,fs.s3.sleepTimeSeconds=30]'
         result = copy.deepcopy(DEFAULT_RESULT)
         result['BootstrapActions'] = [emf_fs_ba_config]
         self.assert_params_for_cmd(cmd, result)
 
         data_path = os.path.join(
             os.path.dirname(__file__), 'input_emr_fs.json')
-        cmd = DEFAULT_CMD + '--emrfs file://' + data_path
+        cmd = f'{DEFAULT_CMD}--emrfs file://{data_path}'
         self.assert_params_for_cmd(cmd, result)
 
     def test_all_security_groups(self):
@@ -1312,18 +1253,18 @@ class TestCreateCluster(BaseAWSCommandParamsTest):
         data_path = os.path.join(
             os.path.dirname(__file__),
             'input_ec2_attributes_with_security_groups.json')
-        cmd = DEFAULT_CMD + '--ec2-attributes file://' + data_path
+        cmd = f'{DEFAULT_CMD}--ec2-attributes file://{data_path}'
 
         result = copy.deepcopy(DEFAULT_RESULT)
         instances = result['Instances']
         instances['EmrManagedMasterSecurityGroup'] = \
-            EMR_MANAGED_MASTER_SECURITY_GROUP
+                EMR_MANAGED_MASTER_SECURITY_GROUP
         instances['EmrManagedSlaveSecurityGroup'] = \
-            EMR_MANAGED_SLAVE_SECURITY_GROUP
+                EMR_MANAGED_SLAVE_SECURITY_GROUP
         instances['AdditionalMasterSecurityGroups'] = \
-            ADDITIONAL_MASTER_SECURITY_GROUPS
+                ADDITIONAL_MASTER_SECURITY_GROUPS
         instances['AdditionalSlaveSecurityGroups'] = \
-            ADDITIONAL_SLAVE_SECURITY_GROUPS
+                ADDITIONAL_SLAVE_SECURITY_GROUPS
 
         self.assert_params_for_cmd(cmd, result)
 

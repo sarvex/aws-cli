@@ -44,7 +44,7 @@ class TestSearchCommand(BaseAWSCommandParamsTest):
         self.assertIn('--endpoint-url is required', stderr)
 
     def test_endpoint_not_required_for_help(self):
-        cmd = self.prefix + 'help'
+        cmd = f'{self.prefix}help'
         with mock.patch('awscli.help.get_renderer') as get_renderer:
             mock_render = mock.Mock(spec=PagingHelpRenderer)
             get_renderer.return_value = mock_render
